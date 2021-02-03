@@ -45,44 +45,38 @@
 #include <Kokkos_Core.hpp>
 
 template <typename MatrixType, typename ViewType>
-double matrix_vector(MatrixType A,ViewType a, ViewType b)
-{
-   int const size = a.extent(0);
-   Kokkos::Timer timer;
-   Kokkos::parallel_for("matrix_vector", size, KOKKOS_LAMBDA(int i)
-                        {
-                          for (int j=0; j<size; ++j)
-                          {
-                            b(i) += A(i,j) * a(j);
-                          }
-                        });
+double matrix_vector(MatrixType A, ViewType a, ViewType b) {
+  int const size = a.extent(0);
+  Kokkos::Timer timer;
+  Kokkos::parallel_for(
+      "matrix_vector", size, KOKKOS_LAMBDA(int i) {
+        for (int j = 0; j < size; ++j) {
+          b(i) += A(i, j) * a(j);
+        }
+      });
   Kokkos::fence();
 
   return timer.seconds();
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
 
   int const size = 10000;
   Kokkos::View<double*> a("a", size);
   Kokkos::View<double*> b("b", size);
-  Kokkos::parallel_for("fill_a", size, KOKKOS_LAMBDA(int i)
-                       {
-                         a(i) = i;
-                       });
+  Kokkos::parallel_for(
+      "fill_a", size, KOKKOS_LAMBDA(int i) { a(i) = i; });
 
-  double layout_left_duration = 0.;
+  double layout_left_duration  = 0.;
   double layout_right_duration = 0.;
 
   // Layout left
   {
     Kokkos::View<double**, Kokkos::LayoutLeft> A("A", size, size);
-    Kokkos::parallel_for("fill_A_left", size*size, KOKKOS_LAMBDA(int i)
-                         {
-                           A(i%size, i/size) = i;
-                         });
+    Kokkos::parallel_for(
+        "fill_A_left", size * size,
+        KOKKOS_LAMBDA(int i) { A(i % size, i / size) = i; });
     Kokkos::fence();
     layout_left_duration = matrix_vector(A, a, b);
   }
@@ -92,10 +86,9 @@ int main(int argc, char* argv[])
   // Layout right
   {
     Kokkos::View<double**, Kokkos::LayoutRight> A("A", size, size);
-    Kokkos::parallel_for("fill_A_right", size*size, KOKKOS_LAMBDA(int i)
-                         {
-                           A(i%size, i/size) = i;
-                         });
+    Kokkos::parallel_for(
+        "fill_A_right", size * size,
+        KOKKOS_LAMBDA(int i) { A(i % size, i / size) = i; });
     Kokkos::fence();
     layout_right_duration = matrix_vector(A, a, b);
   }

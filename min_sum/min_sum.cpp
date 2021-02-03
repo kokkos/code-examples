@@ -45,56 +45,52 @@
 #include <Kokkos_Core.hpp>
 
 template <typename ViewType, typename ValueType>
-double min(ViewType a, ValueType &min_value)
-{
-   Kokkos::Timer timer;
-   Kokkos::parallel_reduce("min", a.extent(0), KOKKOS_LAMBDA(int i, ValueType &lmin)
-                        {
-                          if (a(i) < lmin)
-                            lmin = a(i);
-                        }, Kokkos::Min<ValueType>(min_value));
+double min(ViewType a, ValueType &min_value) {
+  Kokkos::Timer timer;
+  Kokkos::parallel_reduce(
+      "min", a.extent(0),
+      KOKKOS_LAMBDA(int i, ValueType &lmin) {
+        if (a(i) < lmin) lmin = a(i);
+      },
+      Kokkos::Min<ValueType>(min_value));
 
-   return timer.seconds();
+  return timer.seconds();
 }
 
 template <typename ViewType, typename ValueType>
-double sum(ViewType a, ValueType &sum_value)
-{
-   Kokkos::Timer timer;
-   Kokkos::parallel_reduce("sum", a.extent(0), KOKKOS_LAMBDA(int i, ValueType &lsum)
-                        {
-                          lsum += a(i);
-                        }, Kokkos::Sum<ValueType>(sum_value));
+double sum(ViewType a, ValueType &sum_value) {
+  Kokkos::Timer timer;
+  Kokkos::parallel_reduce(
+      "sum", a.extent(0),
+      KOKKOS_LAMBDA(int i, ValueType &lsum) { lsum += a(i); },
+      Kokkos::Sum<ValueType>(sum_value));
 
-   return timer.seconds();
+  return timer.seconds();
 }
 
 template <typename ViewType, typename ValueType>
-double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value)
-{
-   Kokkos::Timer timer;
-   Kokkos::parallel_reduce("min_sum", a.extent(0), KOKKOS_LAMBDA(int i, ValueType &lmin, ValueType &lsum)
-                        {
-                          if (lmin > a(i))
-                            lmin = a(i);
-                          lsum += a(i);
-                        }, Kokkos::Min<ValueType>(min_value), Kokkos::Sum<ValueType>(sum_value));
+double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
+  Kokkos::Timer timer;
+  Kokkos::parallel_reduce(
+      "min_sum", a.extent(0),
+      KOKKOS_LAMBDA(int i, ValueType &lmin, ValueType &lsum) {
+        if (lmin > a(i)) lmin = a(i);
+        lsum += a(i);
+      },
+      Kokkos::Min<ValueType>(min_value), Kokkos::Sum<ValueType>(sum_value));
 
-   return timer.seconds();
+  return timer.seconds();
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
 
   int const size = 1000000;
 
-  Kokkos::View<double*> a("a", size);
+  Kokkos::View<double *> a("a", size);
 
-  Kokkos::parallel_for("fill_view", size, KOKKOS_LAMBDA(int i)
-                       {
-                         a(i) = i+1.;
-                       });
+  Kokkos::parallel_for(
+      "fill_view", size, KOKKOS_LAMBDA(int i) { a(i) = i + 1.; });
   Kokkos::fence();
 
   double min_value, sum_value;
@@ -108,9 +104,8 @@ int main(int argc, char* argv[])
 
   double duration_min_sum;
   duration_min_sum = min_sum(a, min_value, sum_value);
-  printf("min value %f, sum value %f, duration %f\n", min_value, 
-         sum_value, duration_min_sum);
-
+  printf("min value %f, sum value %f, duration %f\n", min_value, sum_value,
+         duration_min_sum);
 
   return 0;
 }

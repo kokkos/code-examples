@@ -51,8 +51,9 @@ size_t estimate_required_memory(int n) {
   return (nl + 1) * (nl + 1) * 2000;
 }
 
-template <class Scheduler> struct FibonacciTask {
-  using value_type = int;
+template <class Scheduler>
+struct FibonacciTask {
+  using value_type  = int;
   using future_type = Kokkos::BasicFuture<int, Scheduler>;
 
   int n;
@@ -90,13 +91,13 @@ template <class Scheduler> struct FibonacciTask {
 
 int main(int argc, char *argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
-  int n = 10; // Fib number to compute
+  int n = 10;  // Fib number to compute
 
   using scheduler_type = Kokkos::TaskScheduler<Kokkos::DefaultExecutionSpace>;
-  using memory_space = typename scheduler_type::memory_space;
-  using memory_pool = typename scheduler_type::memory_pool;
+  using memory_space   = typename scheduler_type::memory_space;
+  using memory_pool    = typename scheduler_type::memory_pool;
 
-  auto mpool = memory_pool(memory_space(), estimate_required_memory(n));
+  auto mpool     = memory_pool(memory_space(), estimate_required_memory(n));
   auto scheduler = scheduler_type(mpool);
 
   Kokkos::BasicFuture<int, scheduler_type> result;

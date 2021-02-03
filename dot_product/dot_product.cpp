@@ -47,20 +47,18 @@
 #include <numeric>
 
 template <typename ViewType>
-typename ViewType::value_type dot_product(ViewType a, ViewType b)
-{
-   using ValueType = typename ViewType::value_type;
-   ValueType result;
-   Kokkos::parallel_reduce("dot_product", a.extent(0), KOKKOS_LAMBDA(int i, ValueType &lsum)
-                        {
-                          lsum += a(i)*b(i);
-                        }, Kokkos::Sum<ValueType>(result));
+typename ViewType::value_type dot_product(ViewType a, ViewType b) {
+  using ValueType = typename ViewType::value_type;
+  ValueType result;
+  Kokkos::parallel_reduce(
+      "dot_product", a.extent(0),
+      KOKKOS_LAMBDA(int i, ValueType& lsum) { lsum += a(i) * b(i); },
+      Kokkos::Sum<ValueType>(result));
 
-   return result;
+  return result;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
 
   int const size = 1000;
@@ -68,18 +66,19 @@ int main(int argc, char* argv[])
   Kokkos::View<double*> a("a", size);
   Kokkos::View<double*> b("b", size);
 
-  Kokkos::parallel_for("fill_view", size, KOKKOS_LAMBDA(int i)
-                       {
-                         a(i) = i;
-                         b(i) = i+1;
-                       });
+  Kokkos::parallel_for(
+      "fill_view", size, KOKKOS_LAMBDA(int i) {
+        a(i) = i;
+        b(i) = i + 1;
+      });
   double const result = dot_product(a, b);
-  
+
   std::vector<double> a_ref(size);
   std::iota(a_ref.begin(), a_ref.end(), 0);
   std::vector<double> b_ref(size);
   std::iota(b_ref.begin(), b_ref.end(), 1);
-  double const reference = std::inner_product(a_ref.begin(), a_ref.end(), b_ref.begin(), 0.);
+  double const reference =
+      std::inner_product(a_ref.begin(), a_ref.end(), b_ref.begin(), 0.);
 
   printf("dot_product %f, reference value %f\n", result, reference);
 
