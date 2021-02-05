@@ -96,15 +96,21 @@ int main(int argc, char *argv[]) {
   double min_value, sum_value;
   double duration_min, duration_sum;
 
+  // Warmup
   duration_min = min(a, min_value);
-  printf("min value %f, duration %f\n", min_value, duration_min);
+  duration_min = min(a, min_value);
+  printf("min value %lf, duration %e\n", min_value, duration_min);
 
+  // Warmup
   duration_sum = sum(a, sum_value);
-  printf("sum value %f, duration %f\n", sum_value, duration_sum);
+  duration_sum = sum(a, sum_value);
+  printf("sum value %lf, duration %e\n", sum_value, duration_sum);
 
   double duration_min_sum;
+  // Warmup
   duration_min_sum = min_sum(a, min_value, sum_value);
-  printf("min value %f, sum value %f, duration %f\n", min_value, sum_value,
+  duration_min_sum = min_sum(a, min_value, sum_value);
+  printf("min value %lf, sum value %lf, duration %e\n", min_value, sum_value,
          duration_min_sum);
 
   return 0;
