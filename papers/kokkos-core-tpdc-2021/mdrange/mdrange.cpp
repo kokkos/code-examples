@@ -101,8 +101,9 @@ double tensor_add_mdrange(TensorType a, TensorType b) {
 int main(int argc, char* argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
 
-  int const size = 100;
+  int const size = 200;
 
+  double GB_moved = 1. * size * size * size * 3 * 8 / 1024 / 1024 / 1024;
   // tensor_add_only_first_dimension
   {
     Kokkos::View<double***> A("A", size, size, size);
@@ -116,9 +117,11 @@ int main(int argc, char* argv[]) {
           B(i, j, k) = i + j + k;
         });
     Kokkos::fence();
-    const double duration = tensor_add_only_first_dimension(A, B);
-    std::cout << "tensor_add_only_first_dimension duration(s) " << duration
-              << '\n';
+    // Warmup
+    double duration = tensor_add_only_first_dimension(A, B);
+    duration        = tensor_add_only_first_dimension(A, B);
+    printf("tensor_add_only_first_dimension duration(s) %lfus %lfGB/s\n",
+           duration * 1.e6, GB_moved / duration);
   }
 
   // tensor_add_flattened
@@ -134,8 +137,11 @@ int main(int argc, char* argv[]) {
           B(i, j, k) = i + j + k;
         });
     Kokkos::fence();
-    const double duration = tensor_add_flattened(A, B);
-    std::cout << "tensor_add_flattened duration(s) " << duration << '\n';
+    // Warmup
+    double duration = tensor_add_flattened(A, B);
+    duration        = tensor_add_flattened(A, B);
+    printf("tensor_add_flattened duration(s) %lfus %lfGB/s\n", duration * 1.e6,
+           GB_moved / duration);
   }
 
   // tensor_add_mdrange
@@ -151,8 +157,11 @@ int main(int argc, char* argv[]) {
           B(i, j, k) = i + j + k;
         });
     Kokkos::fence();
-    const double duration = tensor_add_mdrange(A, B);
-    std::cout << "tensor_add_mdrange duration(s) " << duration << '\n';
+    // Warmup
+    double duration = tensor_add_mdrange(A, B);
+    duration        = tensor_add_mdrange(A, B);
+    printf("tensor_add_mdrange duration(s) %lfus %lfGB/s\n", duration * 1.e6,
+           GB_moved / duration);
   }
 
   return 0;
