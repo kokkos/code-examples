@@ -46,15 +46,51 @@
 
 #include "generate_matrix.hpp"
 
+// We map to KokkosKernels to get access to third party libraries
+#ifdef USE_KOKKOS_KERNELS
+#include<KokkosSparse_spmv.hpp>
+#include<KokkosBlas.hpp>
+
 template <class YType, class AType, class XType>
 void spmv(YType y, AType A, XType x) {
-#ifdef KOKKOS_ENABLE_CUDA
-  int rows_per_team = 16;
-  int team_size     = 16;
+     KokkosSparse::CrsMatrix<double, int64_t, Kokkos::Device<Kokkos::Cuda,Kokkos::CudaSpace>,void,int64_t>
+             matrix ("A",//const std::string& /* label */,
+                     A.num_rows(),//const OrdinalType nrows,
+                     A.num_cols(),//const OrdinalType ncols,
+                     A.nnz(),//const size_type annz,
+                     A.values,//const values_type& vals,
+                     A.row_ptr,//const row_map_type& rowmap,
+                     A.col_idx);//const index_type& cols)
+  KokkosSparse::spmv("N",1.0,matrix,x,0.0,y);
+}
+
+template <class YType, class XType>
+double dot(YType y, XType x) {
+  return KokkosBlas::dot(y,x);
+}
+
+template <class ZType, class YType, class XType>
+void axpby(ZType z, double alpha, XType x, double beta, YType y) {
+  if(z.data() == y.data())
+    return KokkosBlas::axpby(alpha,x,beta,y);
+  else
+    return KokkosBlas::update(alpha,x,beta,y,0.,z);
+}
+
 #else
+template <class YType, class AType, class XType>
+void spmv(YType y, AType A, XType x) {
+
+  // For low thread counts spread rows over individual threads
   int rows_per_team = 512;
   int team_size     = 1;
-#endif
+
+  // For high concurrency architecture use teams
+  if(Kokkos::DefaultExecutionSpace().concurrency() > 1024) {
+    rows_per_team = 16;
+    team_size     = 16;
+  }
+
   int64_t nrows = y.extent(0);
   Kokkos::parallel_for(
       "SPMV",
@@ -83,7 +119,6 @@ void spmv(YType y, AType A, XType x) {
                              });
       });
 }
-
 template <class YType, class XType>
 double dot(YType y, XType x) {
   double result;
@@ -101,6 +136,7 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
       "AXPBY", n,
       KOKKOS_LAMBDA(const int& i) { z(i) = alpha * x(i) + beta * y(i); });
 }
+#endif
 
 template <class VType, class AType>
 int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
