@@ -12,25 +12,20 @@ template <class ExecSpace>
 struct Axpby {
   Vector_t x, y;
   double alpha, beta;
-  KOKKOS_FUNCTION  
-  void operator() (const int& i) const noexcept
-    {
-      x(i) = alpha * x(i) + beta * y(i);
-    }
- };
+  KOKKOS_FUNCTION
+  void operator()(const int& i) const noexcept {
+    x(i) = alpha * x(i) + beta * y(i);
+  }
+};
 
 template <class ExecSpace, class T>
 struct Dot {
   Vector_t x, y;
   KOKKOS_FUNCTION
-  void operator() (const int& i, T& lsum) const noexcept
-    {
-      lsum +=  x(i) * y(i);
-    }
- };
+  void operator()(const int& i, T& lsum) const noexcept { lsum += x(i) * y(i); }
+};
 
-int main (int argc, char* argv[]) {
-
+int main(int argc, char* argv[]) {
   Kokkos::ScopeGuard guard(argc, argv);
   Vector_t x("x", N), y("y", N), z("z", N);
   Scalar_t dotp("dotp");
@@ -40,7 +35,7 @@ int main (int argc, char* argv[]) {
   using dotp_functor  = Dot<EXECSPACE, double>;
   EXECSPACE ex{};
 
-  //Set up
+  // Set up
   Kokkos::deep_copy(ex, dotp, 0);
   Kokkos::deep_copy(ex, x, 1);
   Kokkos::deep_copy(ex, y, 2);
@@ -52,11 +47,14 @@ int main (int argc, char* argv[]) {
     auto f_xpy = root.then_parallel_for(N, axpby_functor{x, y, alpha, beta});
     auto f_zpy = root.then_parallel_for(N, axpby_functor{z, y, gamma, beta});
     auto ready = when_all(f_xpy, f_zpy);
-    ready.then_parallel_reduce(N, dotp_functor{x,z}, dotp);
+    ready.then_parallel_reduce(N, dotp_functor{x, z}, dotp);
   });
 
   // Submit many times
   int iters = I;
-  while(--iters>0) { graph.submit(); ex.fence(); /*foo(dotp)*/ }
+  while (--iters > 0) {
+    graph.submit();
+    ex.fence(); /*foo(dotp)*/
+  }
   return 0;
 }
