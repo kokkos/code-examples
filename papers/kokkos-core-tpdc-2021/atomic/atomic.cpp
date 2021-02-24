@@ -91,10 +91,12 @@ int main(int argc, char *argv[]) {
 
   double time_int = run_test<int>(R, dx, pos, grid_size);
   double time_double = run_test<double>(R, dx, pos, grid_size);
-  double time_complex = run_test<Kokkos::complex<double>>(R, dx, pos, grid_size);
+  double time_complex_float = run_test<Kokkos::complex<float>>(R, dx, pos, grid_size);
+  double time_complex_double = run_test<Kokkos::complex<double>>(R, dx, pos, grid_size);
 
   double gup = 1.e-9*num_particles*R;
-  printf("N: %i Grid: %i Time: %e %e %e GUPS: %e %e %e\n", num_particles, grid_size,
-    time_int/R, time_double/R, time_complex/R, gup/time_int, gup/time_double, gup/time_complex);
+  printf("N: %i Grid: %i Time: %e %e %e %e GUPS: %e %e %e %e\n", num_particles, grid_size,
+    time_int/R, time_double/R, time_complex_float/R, time_complex_double/R,
+    gup/time_int, gup/time_double, gup/time_complex_float, gup/time_complex_double);
   return 0;
 }

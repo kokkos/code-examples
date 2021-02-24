@@ -1,0 +1,10 @@
+repeats=$2
+filter=GUPS
+echo ${repeats} &> $1.out
+for i in $(seq 1 1 ${repeats}); do
+  echo "Repeat "$i
+  ./$1 >> $1.out
+done
+
+cat $1.out | grep ${filter} &> $1.filtered_out
+cat $1.filtered_out | awk '{print $11 ", " $12 ", " $13 ", " $14}' &> $1.raw_numbers.cvs
