@@ -180,7 +180,7 @@ void axpby(ZType z, double alpha, XType x, double scale, scalar_t beta, YType y)
 }
 
 template <class VType, class AType>
-int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
+int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance, int64_t print_freq) {
   int myproc    = 0;
   int num_iters = 0;
 
@@ -191,9 +191,6 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
   scalar_t p_ap_dot("p_Ap_dot");
   scalar_t oldrtrans("OldTrans");
 
-  int64_t print_freq = max_iter / 10;
-  if (print_freq > 50) print_freq = 50;
-  if (print_freq < 1) print_freq = 1;
   VType x("x", b.extent(0));
   VType r("r", x.extent(0));
   VType p("r", x.extent(0));
@@ -258,12 +255,16 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
            Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
                            team_size, 8),SPMV(Ap,A,p,rows_per_team));
     auto dot2   = spmvn.then_parallel_reduce("Dot2",Ap.extent(0),Dot(Ap,p,alpha,rtrans,p_ap_dot,1),p_ap_dot);
+    auto axpby2 = dot2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
+    axpby2.then_parallel_for("AXPBY",x.extent(0),AXPBY(x, one, x, one, alpha, p));
+/*
     auto axpby2 = dot2.then_parallel_for("AXPBY",x.extent(0),AXPBY(x, one, x, one, alpha, p));
-#if 0
+#if 1
     dot2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
 #else
     axpby2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
 #endif
+*/
   });
   #endif
 
@@ -305,6 +306,8 @@ int main(int argc, char* argv[]) {
   int N            = argc > 1 ? atoi(argv[1]) : 100;
   int max_iter     = argc > 2 ? atoi(argv[2]) : 200;
   double tolerance = argc > 3 ? atoi(argv[3]) : 1e-7;
+  int64_t print_freq = argc > 4? atoi(argv[4]) : max_iter / 10;
+  if (print_freq < 1) print_freq = 1;
 
   CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
   Kokkos::View<double*, Kokkos::HostSpace> h_x =
@@ -325,7 +328,7 @@ int main(int argc, char* argv[]) {
   Kokkos::deep_copy(A.values, h_A.values);
 
   Kokkos::Timer timer;
-  int num_iters = cg_solve(y, A, x, max_iter, tolerance);
+  int num_iters = cg_solve(y, A, x, max_iter, tolerance, print_freq);
   double time   = timer.seconds();
 
   // Compute Bytes and Flops
