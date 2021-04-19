@@ -85,6 +85,81 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
     return KokkosBlas::update(alpha,x,beta,y,0.,z);
 }
 #endif
+#elif 1
+#include <rocsparse.h>
+
+template <class YType, class AType, class XType>
+void spmv(YType y, AType A, XType x) {
+
+  double const alpha = 1.;
+  double const beta = 0.;
+
+#ifdef USE_STATIC_VARS
+  // Create rocSPARSE handle
+  static rocsparse_handle handle = []() {
+    rocsparse_handle handle;
+    rocsparse_create_handle(&handle);
+    return handle;
+  }();
+
+  // Create matrix info structure
+  static rocsparse_mat_info info = []() {
+    rocsparse_mat_info info;
+    rocsparse_create_mat_info(&info);
+    return info;
+  }();
+
+  static rocsparse_mat_descr descr = []() {
+    rocsparse_mat_descr descr;
+    rocsparse_create_mat_descr(&descr);
+    return descr;
+  }();
+#else
+  rocsparse_handle handle;
+  rocsparse_create_handle(&handle);
+
+  rocsparse_mat_info info;
+  rocsparse_create_mat_info(&info);
+
+  rocsparse_mat_descr descr;
+  rocsparse_create_mat_descr(&descr);
+#endif
+
+  // Perform analysis step to obtain meta data
+  rocsparse_dcsrmv_analysis(handle,
+                            rocsparse_operation_none,
+                            A.num_rows(),
+                            A.num_cols(),
+                            A.nnz(),
+                            descr,
+                            A.values.data(),
+                            A.row_ptr.data(),
+                            A.col_idx.data(),
+                            info);
+
+  // Compute y = Ax
+  rocsparse_dcsrmv(handle,
+                   rocsparse_operation_none,
+                   A.num_rows(),
+                   A.num_cols(),
+                   A.nnz(),
+                   &alpha,
+                   descr,
+                   A.values.data(),
+                   A.row_ptr.data(),
+                   A.col_idx.data(),
+                   info,
+                   x.data(),
+                   &beta,
+                   y.data());
+
+#ifndef USE_STATIC_VARS
+  // Clean up
+  rocsparse_destroy_mat_descr(descr);
+  rocsparse_destroy_mat_info(info);
+  rocsparse_destroy_handle(handle);
+#endif
+}
 
 #else
 template <class YType, class AType, class XType>
