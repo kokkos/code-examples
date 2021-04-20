@@ -125,17 +125,20 @@ void spmv(YType y, AType A, XType x) {
   rocsparse_create_mat_descr(&descr);
 #endif
 
-  // Perform analysis step to obtain meta data
-  rocsparse_dcsrmv_analysis(handle,
-                            rocsparse_operation_none,
-                            A.num_rows(),
-                            A.num_cols(),
-                            A.nnz(),
-                            descr,
-                            A.values.data(),
-                            A.row_ptr.data(),
-                            A.col_idx.data(),
-                            info);
+  static int count = 0;
+  if (count++ == 0) {
+    // Perform analysis step to obtain meta data
+    rocsparse_dcsrmv_analysis(handle,
+                              rocsparse_operation_none,
+                              A.num_rows(),
+                              A.num_cols(),
+                              A.nnz(),
+                              descr,
+                              A.values.data(),
+                              A.row_ptr.data(),
+                              A.col_idx.data(),
+                              info);
+  }
 
   // Compute y = Ax
   rocsparse_dcsrmv(handle,
