@@ -106,7 +106,13 @@ double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
       },
       Kokkos::Min<ValueType>(min_value), Kokkos::Sum<ValueType>(sum_value));
 #elif defined(USE_OMPT)
-  return 1e99;
+  int const n = a.extent(0);
+  auto const *a_ptr = a.data();
+#pragma omp target teams distribute parallel for reduction(+: sum_value) reduction(min: min_value) is_device_ptr(a_ptr)
+  for(int i = 0; i < n; ++i) {
+    if (a(i) < min_value) min_value = a_ptr[i];
+    sum_value += a_ptr[i];
+  }
 #else
 #error game over
 #endif
