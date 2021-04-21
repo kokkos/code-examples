@@ -17,7 +17,7 @@ endif
 
 CXXFLAGS = -O3 -g
 # Only use one of the following
-#CXXFLAGS += -DUSE_CUDA
+CXXFLAGS += -DUSE_CUDA
 #CXXFLAGS += -DUSE_OMP
 #CXXFLAGS += -DUSE_OMPT
 

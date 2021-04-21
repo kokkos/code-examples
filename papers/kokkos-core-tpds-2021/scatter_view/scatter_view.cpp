@@ -182,12 +182,13 @@ int main(int argc, char *argv[]) {
   Kokkos::fence();
 
   double time_int = run_test<int>(R, dx, pos, grid_size);
-#if !defined(KOKKOS_ENABLE_HIP)
   double time_double = run_test<double>(R, dx, pos, grid_size);
-#endif
 #if defined(USE_KOKKOS) || defined(USE_OMP)
   double time_complex_float = run_test<Kokkos::complex<float>>(R, dx, pos, grid_size);
   double time_complex_double = run_test<Kokkos::complex<double>>(R, dx, pos, grid_size);
+#else
+  double time_complex_float = 0.;
+  double time_complex_double = 0.;
 #endif
 
   double gup = 1.e-9*num_particles*R;

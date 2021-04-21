@@ -44,7 +44,7 @@
 
 #include <Kokkos_Core.hpp>
 
-#if !defined(USE_KOKKOS) && !defined(USE_OMPT)
+#if !defined(USE_KOKKOS) && !defined(USE_OMPT) && !defined(USE_OMP)
 #define USE_KOKKOS
 #endif
 
@@ -59,14 +59,22 @@ double min(ViewType a, ValueType &min_value) {
         if (a(i) < lmin) lmin = a(i);
       },
       Kokkos::Min<ValueType>(min_value));
-#elif defined(USE_OMPT)
+#else
   int const n = a.extent(0);
   auto const *a_ptr = a.data();
+#if defined(USE_OMP)
+  min_value = 1.e100;
+  #pragma omp parallel for reduction(min: min_value)
+  for(int i = 0; i < n; ++i)
+    if (a(i) < min_value) min_value = a_ptr[i];
+#elif defined(USE_OMPT)
+  min_value = 1.e100;
 #pragma omp target teams distribute parallel for reduction(min: min_value) is_device_ptr(a_ptr)
   for(int i = 0; i < n; ++i)
     if (a(i) < min_value) min_value = a_ptr[i];
 #else
 #error game over
+#endif
 #endif
 
   return timer.seconds();
@@ -81,14 +89,22 @@ double sum(ViewType a, ValueType &sum_value) {
       "sum", a.extent(0),
       KOKKOS_LAMBDA(int i, ValueType &lsum) { lsum += a(i); },
       Kokkos::Sum<ValueType>(sum_value));
-#elif defined(USE_OMPT)
+#else
   int const n = a.extent(0);
   auto const *a_ptr = a.data();
+#if defined(USE_OMP)
+  sum_value = 0.;
+#pragma omp parallel for reduction(+: sum_value)
+  for(int i = 0; i < n; ++i)
+    sum_value += a_ptr[i];
+#elif defined(USE_OMPT)
+  sum_value = 0.;
 #pragma omp target teams distribute parallel for reduction(+: sum_value) is_device_ptr(a_ptr)
   for(int i = 0; i < n; ++i)
     sum_value += a_ptr[i];
 #else
 #error game over
+#endif
 #endif
 
   return timer.seconds();
@@ -105,9 +121,20 @@ double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
         lsum += a(i);
       },
       Kokkos::Min<ValueType>(min_value), Kokkos::Sum<ValueType>(sum_value));
-#elif defined(USE_OMPT)
+#else
   int const n = a.extent(0);
   auto const *a_ptr = a.data();
+#if defined(USE_OMP)
+  sum_value = 0.;
+  min_value = 1.e100;
+#pragma omp parallel for reduction(+: sum_value) reduction(min: min_value)
+  for(int i = 0; i < n; ++i) {
+    if (a_ptr[i] < min_value) min_value = a_ptr[i];
+    sum_value += a_ptr[i];
+  }
+#elif defined(USE_OMPT)
+  sum_value = 0.
+  min_value = 1e100;
 #pragma omp target teams distribute parallel for reduction(+: sum_value) reduction(min: min_value) is_device_ptr(a_ptr)
   for(int i = 0; i < n; ++i) {
     if (a(i) < min_value) min_value = a_ptr[i];
@@ -115,6 +142,7 @@ double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
   }
 #else
 #error game over
+#endif
 #endif
 
   return timer.seconds();
