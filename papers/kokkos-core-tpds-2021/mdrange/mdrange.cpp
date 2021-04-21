@@ -44,12 +44,17 @@
 
 #include <Kokkos_Core.hpp>
 
+#if !defined(USE_KOKKOS) && !defined(USE_OMPT)
+#define USE_KOKKOS
+#endif
+
 template <typename TensorType>
 double tensor_add_only_first_dimension(TensorType a, TensorType b) {
   int const size0 = a.extent(0);
   int const size1 = a.extent(1);
   int const size2 = a.extent(2);
   Kokkos::Timer timer;
+#if defined(USE_KOKKOS)
   Kokkos::parallel_for(
       "tensor_add_only_first_dimension", Kokkos::RangePolicy<>(0, size0),
       KOKKOS_LAMBDA(int i) {
@@ -59,6 +64,19 @@ double tensor_add_only_first_dimension(TensorType a, TensorType b) {
           }
       });
   Kokkos::fence();
+#elif defined(USE_OMPT)
+  auto * a_ptr = a.data();
+  auto const * b_ptr = b.data();
+  #pragma omp target teams distribute parallel for is_device_ptr(a_ptr, b_ptr)
+  for (int i = 0; i < size0; ++i)
+    for (int j = 0; j < size1; ++j)
+      for (int k = 0; k < size2; ++k) {
+        int const idx = i + j * size0 + k * size0 * size1;
+        a_ptr[idx] += b_ptr[idx];
+      }
+#else
+#error logic error
+#endif
 
   return timer.seconds();
 }
@@ -69,6 +87,7 @@ double tensor_add_flattened(TensorType a, TensorType b) {
   int const size1 = a.extent(1);
   int const size2 = a.extent(2);
   Kokkos::Timer timer;
+#if defined(USE_KOKKOS)
   Kokkos::parallel_for(
       "tensor_add_flattened", Kokkos::RangePolicy<>(0, size0 * size1 * size2),
       KOKKOS_LAMBDA(int n) {
@@ -78,6 +97,20 @@ double tensor_add_flattened(TensorType a, TensorType b) {
         a(i, j, k) += b(i, j, k);
       });
   Kokkos::fence();
+#elif defined(USE_OMPT)
+  auto * a_ptr = a.data();
+  auto const * b_ptr = b.data();
+#pragma omp target teams distribute parallel for is_device_ptr(a_ptr, b_ptr)
+  for (int n = 0; n < size0 * size1 * size2; ++n) {
+    int const i = n / (size1 * size2);
+    int const j = (n % (size1 * size2)) / size2;
+    int const k = n % size2;
+    int const idx = i + j * size0 + k * size0 * size1;
+    a_ptr[idx] += b_ptr[idx];
+  }
+#else
+#error logic error
+#endif
 
   return timer.seconds();
 }
@@ -88,12 +121,28 @@ double tensor_add_mdrange(TensorType a, TensorType b) {
   int const size1 = a.extent(1);
   int const size2 = a.extent(2);
   Kokkos::Timer timer;
+#if defined(USE_KOKKOS)
   Kokkos::parallel_for(
       "tensor_add_mdrange",
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>({{0, 0, 0}},
                                              {{size0, size1, size2}}),
       KOKKOS_LAMBDA(int i, int j, int k) { a(i, j, k) += b(i, j, k); });
   Kokkos::fence();
+#elif defined(USE_OMPT)
+  auto* a_ptr       = a.data();
+  auto const* b_ptr = b.data();
+#pragma omp target teams distribute parallel for collapse(3) is_device_ptr(a_ptr, b_ptr)
+  for (int k = 0; k < size2; ++k) {
+    for (int j = 0; j < size1; ++j) {
+      for (int i = 0; i < size0; ++i) {
+        int const idx = i + j * size0 + k * size0 * size1;
+        a_ptr[idx] += b_ptr[idx];
+      }
+    }
+  }
+#else
+#error logic error
+#endif
 
   return timer.seconds();
 }

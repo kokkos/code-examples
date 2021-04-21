@@ -44,15 +44,30 @@
 
 #include <Kokkos_Core.hpp>
 
+#if !defined(USE_KOKKOS) && !defined(USE_OMPT)
+#define USE_KOKKOS
+#endif
+
 template <typename ViewType, typename ValueType>
 double min(ViewType a, ValueType &min_value) {
   Kokkos::Timer timer;
+
+#if defined(USE_KOKKOS)
   Kokkos::parallel_reduce(
       "min", a.extent(0),
       KOKKOS_LAMBDA(int i, ValueType &lmin) {
         if (a(i) < lmin) lmin = a(i);
       },
       Kokkos::Min<ValueType>(min_value));
+#elif defined(USE_OMPT)
+  int const n = a.extent(0);
+  auto const *a_ptr = a.data();
+#pragma omp target teams distribute parallel for reduction(min: min_value) is_device_ptr(a_ptr)
+  for(int i = 0; i < n; ++i)
+    if (a(i) < min_value) min_value = a_ptr[i];
+#else
+#error game over
+#endif
 
   return timer.seconds();
 }
@@ -60,10 +75,21 @@ double min(ViewType a, ValueType &min_value) {
 template <typename ViewType, typename ValueType>
 double sum(ViewType a, ValueType &sum_value) {
   Kokkos::Timer timer;
+
+#if defined(USE_KOKKOS)
   Kokkos::parallel_reduce(
       "sum", a.extent(0),
       KOKKOS_LAMBDA(int i, ValueType &lsum) { lsum += a(i); },
       Kokkos::Sum<ValueType>(sum_value));
+#elif defined(USE_OMPT)
+  int const n = a.extent(0);
+  auto const *a_ptr = a.data();
+#pragma omp target teams distribute parallel for reduction(+: sum_value) is_device_ptr(a_ptr)
+  for(int i = 0; i < n; ++i)
+    sum_value += a_ptr[i];
+#else
+#error game over
+#endif
 
   return timer.seconds();
 }
@@ -71,6 +97,7 @@ double sum(ViewType a, ValueType &sum_value) {
 template <typename ViewType, typename ValueType>
 double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
   Kokkos::Timer timer;
+#if defined(USE_KOKKOS)
   Kokkos::parallel_reduce(
       "min_sum", a.extent(0),
       KOKKOS_LAMBDA(int i, ValueType &lmin, ValueType &lsum) {
@@ -78,6 +105,11 @@ double min_sum(ViewType a, ValueType &min_value, ValueType &sum_value) {
         lsum += a(i);
       },
       Kokkos::Min<ValueType>(min_value), Kokkos::Sum<ValueType>(sum_value));
+#elif defined(USE_OMPT)
+  return 1e99;
+#else
+#error game over
+#endif
 
   return timer.seconds();
 }
