@@ -44,8 +44,23 @@
 
 #include <Kokkos_Core.hpp>
 
-#if !defined(USE_KOKKOS) && !defined(USE_OMPT)
+#if !defined(USE_KOKKOS) && !defined(USE_OMPT) && !defined(USE_OMP) && !defined(USE_CUDA)
 #define USE_KOKKOS
+#endif
+
+#if defined(USE_CUDA)
+template<class LAMBDA>
+__global__ void cuda_kernel(size_t N, const LAMBDA f) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if(i<N) f(i);
+}
+template<class LAMBDA>
+__global__ void cuda_kernel3(size_t N0, size_t N1, size_t N2, const LAMBDA f) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int j = blockIdx.y * blockDim.y + threadIdx.y;
+  int k = blockIdx.z * blockDim.z + threadIdx.z;
+  if(i<N0 && j<N1 && k<N2) f(i,j,k);
+}
 #endif
 
 template <typename TensorType>
@@ -64,9 +79,27 @@ double tensor_add_only_first_dimension(TensorType a, TensorType b) {
           }
       });
   Kokkos::fence();
-#elif defined(USE_OMPT)
+#else
   auto * a_ptr = a.data();
   auto const * b_ptr = b.data();
+#if defined(USE_OMP)
+  #pragma omp parallel for
+  for (int i = 0; i < size0; ++i)
+    for (int j = 0; j < size1; ++j)
+      for (int k = 0; k < size2; ++k) {
+        int const idx = (i * size1 + j ) * size2 + k;
+        a_ptr[idx] += b_ptr[idx];
+      }
+#elif defined(USE_CUDA)
+  cuda_kernel<<<(size0+128)/128,128>>>(size0,[=]__device__(int i) {
+        for (int j = 0; j < size1; ++j)
+          for (int k = 0; k < size2; ++k) {
+            int const idx = i + j * size0 + k * size0 * size1;
+            a_ptr[idx] += b_ptr[idx];
+          }
+  });
+  Kokkos::fence();
+#elif defined(USE_OMPT)
   #pragma omp target teams distribute parallel for is_device_ptr(a_ptr, b_ptr)
   for (int i = 0; i < size0; ++i)
     for (int j = 0; j < size1; ++j)
@@ -76,6 +109,7 @@ double tensor_add_only_first_dimension(TensorType a, TensorType b) {
       }
 #else
 #error logic error
+#endif
 #endif
 
   return timer.seconds();
@@ -97,9 +131,28 @@ double tensor_add_flattened(TensorType a, TensorType b) {
         a(i, j, k) += b(i, j, k);
       });
   Kokkos::fence();
-#elif defined(USE_OMPT)
+#else
   auto * a_ptr = a.data();
   auto const * b_ptr = b.data();
+#if defined(USE_OMP)
+#pragma omp parallel for
+  for (int n = 0; n < size0 * size1 * size2; ++n) {
+    int const i = n / (size1 * size2);
+    int const j = (n % (size1 * size2)) / size2;
+    int const k = n % size2;
+    int const idx = (i * size1 + j ) * size2 + k;
+    a_ptr[idx] += b_ptr[idx];
+  }
+#elif defined(USE_CUDA)
+  cuda_kernel<<<(size0*size1*size2+127)/128,128>>>(size0*size1*size2,[=]__device__(int n) {
+        int const i = n / (size1 * size2);
+        int const j = (n % (size1 * size2)) / size2;
+        int const k = n % size2;
+        int const idx = i + j * size0 + k * size0 * size1;
+        a_ptr[idx] += b_ptr[idx];
+  });
+  Kokkos::fence();
+#elif defined(USE_OMPT)
 #pragma omp target teams distribute parallel for is_device_ptr(a_ptr, b_ptr)
   for (int n = 0; n < size0 * size1 * size2; ++n) {
     int const i = n / (size1 * size2);
@@ -111,7 +164,7 @@ double tensor_add_flattened(TensorType a, TensorType b) {
 #else
 #error logic error
 #endif
-
+#endif
   return timer.seconds();
 }
 
@@ -128,9 +181,29 @@ double tensor_add_mdrange(TensorType a, TensorType b) {
                                              {{size0, size1, size2}}),
       KOKKOS_LAMBDA(int i, int j, int k) { a(i, j, k) += b(i, j, k); });
   Kokkos::fence();
-#elif defined(USE_OMPT)
+#else
   auto* a_ptr       = a.data();
   auto const* b_ptr = b.data();
+#if defined(USE_OMP)
+#pragma omp parallel for collapse(3)
+  for (int i = 0; i < size0; ++i) {
+    for (int j = 0; j < size1; ++j) {
+      for (int k = 0; k < size2; ++k) {
+        int const idx = (i * size1 + j ) * size2 + k;
+        a_ptr[idx] += b_ptr[idx];
+      }
+    }
+  }
+#elif defined(USE_CUDA)
+  dim3 block = {16,4,4};
+  dim3 grid = {(size0+15)/16, (size1+3)/4, (size2+3)/4};
+  cuda_kernel3<<<grid,block>>>(size0,size1,size2,[=]__device__(int i, int j, int k) {
+    int const idx = i + j * size0 + k * size0 * size1;
+    a_ptr[idx] += b_ptr[idx];
+  });
+  Kokkos::fence();
+
+#elif defined(USE_OMPT)
 #pragma omp target teams distribute parallel for collapse(3) is_device_ptr(a_ptr, b_ptr)
   for (int k = 0; k < size2; ++k) {
     for (int j = 0; j < size1; ++j) {
@@ -143,7 +216,7 @@ double tensor_add_mdrange(TensorType a, TensorType b) {
 #else
 #error logic error
 #endif
-
+#endif
   return timer.seconds();
 }
 
