@@ -85,7 +85,7 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
     return KokkosBlas::update(alpha,x,beta,y,0.,z);
 }
 #endif
-#elif 1
+#elif defined(USE_ROCSPARSE)
 #include <rocsparse.h>
 
 template <class YType, class AType, class XType>
@@ -179,8 +179,8 @@ void spmv(YType y, AType A, XType x) {
 
   // For high concurrency architecture use teams
   if (Kokkos::DefaultExecutionSpace().concurrency() > 1024) {
-    rows_per_team = 16;
-    team_size     = 16;
+    rows_per_team = 64;
+    team_size     = 64;
   }
 
   INT_TYPE nrows = y.extent(0);
