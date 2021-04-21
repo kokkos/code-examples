@@ -130,10 +130,11 @@ void spmv(YType y, AType A, XType x) {
 
 struct Dot {
   vector_t x,y;
-  scalar_t alpha,rtrans,oldrtrans;
+  scalar_t alpha,oldrtrans;
+  Kokkos::View<double,Kokkos::CudaHostPinnedSpace> rtrans;
   int invert;
 
-  Dot(vector_t& x_, vector_t& y_, scalar_t& alpha_, scalar_t& rtrans_, scalar_t& oldrtrans_, int invert_):
+  Dot(vector_t& x_, vector_t& y_, scalar_t& alpha_, Kokkos::View<double,Kokkos::CudaHostPinnedSpace>& rtrans_, scalar_t& oldrtrans_, int invert_):
     x(x_),y(y_),alpha(alpha_),rtrans(rtrans_),oldrtrans(oldrtrans_), invert(invert_) {}
 
   KOKKOS_FUNCTION
@@ -185,7 +186,7 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance, int64_t 
   int num_iters = 0;
 
   double normr     = 0;
-  scalar_t rtrans("RTrants");
+  Kokkos::View<double,Kokkos::CudaHostPinnedSpace> rtrans("RTrants");
   scalar_t alpha("Alpha");
   scalar_t beta("Alpha");
   scalar_t p_ap_dot("p_Ap_dot");
@@ -246,7 +247,7 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance, int64_t 
     team_size     = 16;
   }
   int64_t nrows = y.extent(0);
-#define USE_GRAPH
+//#define USE_GRAPH
   #ifdef USE_GRAPH
   auto graph = Kokkos::Experimental::create_graph(Kokkos::DefaultExecutionSpace(), [&] (auto root) {
     auto dot1   = root.  then_parallel_reduce("Dot1",r.extent(0),Dot(r,r,alpha,rtrans,oldrtrans,0),rtrans);
@@ -255,16 +256,15 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance, int64_t 
            Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
                            team_size, 8),SPMV(Ap,A,p,rows_per_team));
     auto dot2   = spmvn.then_parallel_reduce("Dot2",Ap.extent(0),Dot(Ap,p,alpha,rtrans,p_ap_dot,1),p_ap_dot);
-    auto axpby2 = dot2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
-    axpby2.then_parallel_for("AXPBY",x.extent(0),AXPBY(x, one, x, one, alpha, p));
-/*
     auto axpby2 = dot2.then_parallel_for("AXPBY",x.extent(0),AXPBY(x, one, x, one, alpha, p));
-#if 1
+// For some reason its a bit slower if one actually exposes the available concurrency
+// Simple linear graph executes a bit faster
+#if 0
     dot2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
 #else
     axpby2.then_parallel_for("AXPBY",r.extent(0),AXPBY(r, one, r, -one, alpha, Ap));
 #endif
-*/
+
   });
   #endif
 
@@ -294,6 +294,9 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance, int64_t 
         } else
           brkdown_tol = 0.1 * p_ap_dot();
       }
+    } else {
+      Kokkos::fence();
+      normr = std::sqrt(rtrans());
     }
     num_iters = k;
   }
