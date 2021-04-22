@@ -94,39 +94,16 @@ void spmv(YType y, AType A, XType x) {
   double const alpha = 1.;
   double const beta = 0.;
 
-#ifdef USE_STATIC_VARS
-  // Create rocSPARSE handle
-  static rocsparse_handle handle = []() {
-    rocsparse_handle handle;
-    rocsparse_create_handle(&handle);
-    return handle;
-  }();
-
-  // Create matrix info structure
-  static rocsparse_mat_info info = []() {
-    rocsparse_mat_info info;
-    rocsparse_create_mat_info(&info);
-    return info;
-  }();
-
-  static rocsparse_mat_descr descr = []() {
-    rocsparse_mat_descr descr;
-    rocsparse_create_mat_descr(&descr);
-    return descr;
-  }();
-#else
   rocsparse_handle handle;
-  rocsparse_create_handle(&handle);
-
   rocsparse_mat_info info;
-  rocsparse_create_mat_info(&info);
-
   rocsparse_mat_descr descr;
-  rocsparse_create_mat_descr(&descr);
-#endif
 
   static int count = 0;
   if (count++ == 0) {
+    rocsparse_create_handle(&handle);
+    rocsparse_create_mat_info(&info);
+    rocsparse_create_mat_descr(&descr);
+
     // Perform analysis step to obtain meta data
     rocsparse_dcsrmv_analysis(handle,
                               rocsparse_operation_none,
