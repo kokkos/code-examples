@@ -1,7 +1,7 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES=Cuda
 KOKKOS_CUDA_OPTIONS=enable_lambda,rdc
-KOKKOS_ARCH = "SNB,Volta70"
+KOKKOS_ARCH = "Volta70"
 
 #KOKKOS_DEVICES=OpenMP
 #KOKKOS_CUDA_OPTIONS=enable_lambda

@@ -1,16 +1,12 @@
+KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES=Cuda
 KOKKOS_CUDA_OPTIONS=enable_lambda,rdc
-KOKKOS_ARCH = "SNB,Kepler35"
+KOKKOS_ARCH = "Volta70"
 
 #KOKKOS_DEVICES=OpenMP
 #KOKKOS_CUDA_OPTIONS=enable_lambda
 #KOKKOS_ARCH = "SNB"
 
-MAKEFILE_PATH := $(subst Makefile,,$(abspath $(lastword $(MAKEFILE_LIST))))
-
-ifndef KOKKOS_PATH
-  KOKKOS_PATH = $(MAKEFILE_PATH)../..
-endif
 
 SRC = $(wildcard $(MAKEFILE_PATH)*.cpp)
 HEADERS = $(wildcard $(MAKEFILE_PATH)*.hpp)
@@ -31,7 +27,7 @@ EXE = virtual.host
 endif
 
 CXXFLAGS ?= -O3 -g
-override CXXFLAGS += -I$(MAKEFILE_PATH)
+override CXXFLAGS += -I./
 
 DEPFLAGS = -M
 LINK = ${CXX}
