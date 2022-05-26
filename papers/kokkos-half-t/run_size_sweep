@@ -1,0 +1,17 @@
+
+echo "Running Test: " $1 200 $2 $3
+./run_n $1 200 $2 $3
+echo "Running Test: " $1 180 $2 $3
+./run_n $1 180 $2 $3
+echo "Running Test: " $1 162 $2 $3
+./run_n $1 162 $2 $3
+echo "Running Test: " $1 146 $2 $3
+./run_n $1 146 $2 $3
+echo "Running Test: " $1 131 $2 $3
+./run_n $1 131 $2 $3
+echo "Running Test: " $1 118 $2 $3
+./run_n $1 118 $2 $3
+echo "Running Test: " $1 106 $2 $3
+./run_n $1 106 $2 $3
+echo "Running Test: " $1 96 $2 $3
+./run_n $1 96 $2 $3

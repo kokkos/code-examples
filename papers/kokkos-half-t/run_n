@@ -1,0 +1,7 @@
+i=1
+while [ $i -le $4 ]
+do
+  echo "   Iteration" $i "for" $1 $2 $3
+  ./run_one $1 $2 $3 $i
+  i=$(( $i + 1 ))
+done
