@@ -1,0 +1,19 @@
+echo "=================================="
+echo "dddd"
+echo ""
+./analyse_data dddd 10
+echo ""
+echo "=================================="
+echo "ffff"
+echo ""
+./analyse_data ffff 10
+echo ""
+echo "=================================="
+echo "hhff"
+echo ""
+./analyse_data hhff 10
+echo ""
+echo "=================================="
+echo "hhfh"
+echo ""
+./analyse_data hhfh 10

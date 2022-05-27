@@ -1,0 +1,15 @@
+echo "SpMV"
+echo ""
+./analyse_size_sweep $1 $2 spmv
+echo ""
+echo "axpby"
+echo ""
+./analyse_size_sweep $1 $2 axpby
+echo ""
+echo "dot"
+echo ""
+./analyse_size_sweep $1 $2 dot
+echo ""
+echo "CGSolve"
+echo ""
+./analyse_size_sweep $1 $2 CGSolve _cgsolve

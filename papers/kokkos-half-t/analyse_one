@@ -1,0 +1,2 @@
+cat out_$1_$2_$3* | grep $4 | awk 'BEGIN{min=100000000; max=0}{if(index($4,"us")!=0) {val=0+$4;} else {val=0+1000*$4}; ave+=val; if(min>val) min=val; if(max<val) max=val; count+=1;}END{print '$2' " " '$3' " " ave/count " " min " " max}'
+

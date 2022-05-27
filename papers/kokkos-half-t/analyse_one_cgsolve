@@ -1,0 +1,2 @@
+cat out_$1_$2_$3* | grep CGSolve | awk 'BEGIN{min=100000000; max=0}{val=$9; ave+=val; if(min>val) min=val; if(max<val) max=val; count+=1;}END{print '$2' " " '$3' " " ave/count " " min " " max}'
+
