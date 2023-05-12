@@ -25,17 +25,23 @@ make -j8 backend=hip arch=MI250x
 ### clang on NVIDIA A100
 
 ```shell
-make -j8 backend=cuda arch=A100 comp=clang
+make -j8 backend=ompt arch=A100 comp=clang
 ```
 
 ### nvhpc on NVIDIA A100
 
 ```shell
-make -j8 backend=cuda arch=A100 comp=nvhpc
+make -j8 backend=ompt arch=A100 comp=nvhpc
+```
+
+### clang on AMD MI250x
+
+```shell
+make -j8 backend=ompt arch=MI250x comp=clang
 ```
 
 ### amdclang on AMD MI250x
 
 ```shell
-make -j8 backend=cuda arch=MI250x comp=amdclang
+make -j8 backend=ompt arch=MI250x comp=rocmclang
 ```
