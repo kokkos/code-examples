@@ -21,9 +21,9 @@
 int main(int argc, char *argv[]) {
   Kokkos::initialize(argc, argv);
   {
-    int N = argc > 1 ? atoi(argv[1]) : 2147483647;
+    int N = argc > 1 ? atoi(argv[1]) : INT_MAX;
     int R = argc > 2 ? atoi(argv[2]) : 100;
-    for (unsigned int n = 2; n<100000001; n*=2) {
+    for (unsigned int n = 2; n<N; n*=2) {
       DOT dot(n, false);
       dot.run_test(R);
     }
