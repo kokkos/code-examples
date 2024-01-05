@@ -18,6 +18,8 @@
 #include <Kokkos_Core.hpp>
 #include <cmath>
 
+//#define VECTOR_ADD
+
 struct AXPBY {
     using view_t = Kokkos::View<double *>;
     int N;
@@ -34,7 +36,13 @@ struct AXPBY {
           fence_all(fence_all_) {}
 
     KOKKOS_FUNCTION
-    void operator()(int i) const { z(i) = alpha*x(i) + beta*y(i); }
+    void operator()(int i) const { 
+#ifdef VECTOR_ADD
+	    z(i) = x(i) + y(i);
+#else
+	    z(i) = alpha*x(i) + beta*y(i); 
+#endif
+    }
 
   double sycl_axpby(int R) {
     AXPBY f(*this);
@@ -48,7 +56,11 @@ struct AXPBY {
     // Warmup
                     q.parallel_for(sycl::range<1>(N_), [=](sycl::id<1> idx) {
                                     int i = idx;
+#ifdef VECTOR_ADD
+				    z_data[i] = x_data[i] + y_data[i];
+#else
 				    z_data[i] = alpha*x_data[i] + beta*y_data[i];
+#endif
 				    });
     q.wait();
 
@@ -56,7 +68,11 @@ struct AXPBY {
     for (int r = 0; r < R; r++) {
 	                        q.parallel_for(sycl::range<1>(N_), [=](sycl::id<1> idx) {
                                      int i = idx;
+#ifdef VECTOR_ADD
 				     z_data[i] = x_data[i] + y_data[i];
+#else
+                                     z_data[i] = alpha*x_data[i] + beta*y_data[i];
+#endif
                                     });
     }
     q.wait();
@@ -79,7 +95,7 @@ struct AXPBY {
     }
 
     void run_test(int R) {
-        double bytes_moved = 1. * sizeof(double) * N * 3 * R;
+        double bytes_moved = 1. * sizeof(double) * N * 4 * R;
         double GB = bytes_moved / 1024 / 1024 / 1024;
 
         double time_kk = kk_axpby(R);
