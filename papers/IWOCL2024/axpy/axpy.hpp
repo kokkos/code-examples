@@ -21,6 +21,8 @@
 struct AXPBY {
     using view_t = Kokkos::View<double *>;
     int N;
+    double alpha = 1.;
+    double beta  = 2.;
     view_t x, y, z;
 
     bool fence_all;
@@ -32,7 +34,7 @@ struct AXPBY {
           fence_all(fence_all_) {}
 
     KOKKOS_FUNCTION
-    void operator()(int i) const { z(i) += x(i) + y(i); }
+    void operator()(int i) const { z(i) = alpha*x(i) + beta*y(i); }
 
   double sycl_axpby(int R) {
     AXPBY f(*this);
@@ -41,10 +43,12 @@ struct AXPBY {
     auto x_data = x.data();
     auto y_data = y.data();
     auto z_data = z.data();
+    double alpha = 1.;
+    double beta  = 2.;
     // Warmup
                     q.parallel_for(sycl::range<1>(N_), [=](sycl::id<1> idx) {
                                     int i = idx;
-				    z_data[i] = x_data[i] + y_data[i];
+				    z_data[i] = alpha*x_data[i] + beta*y_data[i];
 				    });
     q.wait();
 
@@ -52,7 +56,7 @@ struct AXPBY {
     for (int r = 0; r < R; r++) {
 	                        q.parallel_for(sycl::range<1>(N_), [=](sycl::id<1> idx) {
                                      int i = idx;
-				     z_data[i] += x_data[i] + y_data[i];
+				     z_data[i] = x_data[i] + y_data[i];
                                     });
     }
     q.wait();
@@ -80,6 +84,6 @@ struct AXPBY {
 
         double time_kk = kk_axpby(R);
 	double time_sycl = sycl_axpby(R);
-	std::cout << N << ":\t" << time_kk << " s\t" << GB/time_kk << " GB/s" << time_sycl << " s\t" << GB/time_sycl << " GB/s\t" << time_kk/time_sycl << '\n';
+	std::cout << N << ":\t" << time_kk << " s\t" << GB/time_kk << " GB/s\t" << time_sycl << " s\t" << GB/time_sycl << " GB/s\t" << time_kk/time_sycl << '\n';
     }
 };

@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
   {
     int N = argc > 1 ? atoi(argv[1]) : INT_MAX;
 	                             //2'147'483'647;
-    int R = argc > 2 ? atoi(argv[2]) : 100;
+    int R = argc > 2 ? atoi(argv[2]) : 500;
     for (unsigned int n = 2; n<INT_MAX; n*=2) {
       AXPBY axpby(n, false);
       axpby.run_test(R);
