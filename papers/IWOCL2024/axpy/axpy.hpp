@@ -95,9 +95,8 @@ struct AXPBY {
     }
 
     void run_test(int R) {
-        double bytes_moved = 1. * sizeof(double) * N * 4 * R;
+        double bytes_moved = 1. * sizeof(double) * N * 3 * R;
         double GB = bytes_moved / 1024 / 1024 / 1024;
-
         double time_kk = kk_axpby(R);
 	double time_sycl = sycl_axpby(R);
 	std::cout << N << ":\t" << time_kk << " s\t" << GB/time_kk << " GB/s\t" << time_sycl << " s\t" << GB/time_sycl << " GB/s\t" << time_kk/time_sycl << '\n';
