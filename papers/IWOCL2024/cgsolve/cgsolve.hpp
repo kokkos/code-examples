@@ -18,11 +18,19 @@
 
 //#define USE_TPL
 
+
 #ifdef USE_TPL
 #include <KokkosSparse_spmv.hpp>
 #include <KokkosBlas.hpp>
 #endif
-using INT_TYPE = int;
+using INT_TYPE = int64_t;
+
+//#define ONLY_DO_SPMV
+
+#ifdef ONLY_DO_SPMV
+double time_spmv_kk = 0.;
+double time_spmv_sycl = 0.;
+#endif
 
 /*
  * There is a bug in the clang OpenMP implementation wherein if the `dot`
@@ -40,7 +48,6 @@ struct cgsolve {
 
     cgsolve(int N_, int max_iter_in, double tolerance_in)
         : N(N_), max_iter(max_iter_in), tolerance(tolerance_in) {
-	std::cout << "cgsolve constructor" << std::endl;
         CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
         Kokkos::View<double *, Kokkos::HostSpace> h_x =
             Impl::generate_miniFE_vector(N);
@@ -48,10 +55,8 @@ struct cgsolve {
         Kokkos::View<INT_TYPE *> row_ptr("row_ptr", h_A.row_ptr.extent(0));
         Kokkos::View<INT_TYPE *> col_idx("col_idx", h_A.col_idx.extent(0));
         Kokkos::View<double *> values("values", h_A.values.extent(0));
-	std::cout << "before CrsMatrix constructor" << std::endl;
         A = CrsMatrix<Kokkos::DefaultExecutionSpace::memory_space>(
             row_ptr, col_idx, values, h_A.num_cols());
-        std::cout << "after CrsMatrix constructor" << std::endl;
         x = Kokkos::View<double *>("X", h_x.extent(0));
         y = Kokkos::View<double *>("Y", h_x.extent(0));
 
@@ -59,8 +64,6 @@ struct cgsolve {
         Kokkos::deep_copy(A.row_ptr, h_A.row_ptr);
         Kokkos::deep_copy(A.col_idx, h_A.col_idx);
         Kokkos::deep_copy(A.values, h_A.values);
-	
-	std::cout << "cgsolve end of constructor" << std::endl;
     }
 
 #ifdef USE_TPL
@@ -78,7 +81,15 @@ struct cgsolve {
                A.values,      // const values_type& vals,
                A.row_ptr,     // const row_map_type& rowmap,
                A.col_idx);    // const index_type& cols)
+#ifdef ONLY_DO_SPMV
+        Kokkos::fence();
+        Kokkos::Timer timer_spmv;
+#endif
       KokkosSparse::spmv("N", 1.0, matrix, x, 0.0, y);
+#ifdef ONLY_DO_SPMV
+        Kokkos::fence();
+        time_spmv_kk += timer_spmv.seconds();
+#endif
     }
 #else
     template <class YType, class AType, class XType>
@@ -88,7 +99,11 @@ struct cgsolve {
         int vector_size = 4;
         INT_TYPE nrows = y.extent(0);
 	//std::cout << nrows << std::endl;
-        Kokkos::parallel_for(
+#ifdef ONLY_DO_SPMV
+	Kokkos::fence();
+	Kokkos::Timer timer_spmv;
+#endif
+	Kokkos::parallel_for(
             "SPMV",
             Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
                                  team_size, vector_size),
@@ -115,6 +130,10 @@ struct cgsolve {
                         y(row) = y_row;
                     });
             });
+#ifdef ONLY_DO_SPMV
+	Kokkos::fence();
+	time_spmv_kk += timer_spmv.seconds();
+#endif
     }
 #endif
 
@@ -132,7 +151,11 @@ struct cgsolve {
         auto yp = y.data();
 
         INT_TYPE n = (nrows + rows_per_team - 1) / rows_per_team;
-        q.submit([&] (sycl::handler& cgh) {
+#ifdef ONLY_DO_SPMV
+        q.wait();
+        Kokkos::Timer timer_spmv;
+#endif
+	q.submit([&] (sycl::handler& cgh) {
          cgh.parallel_for_work_group(sycl::range<1>(n), sycl::range<1>(team_size), [=](sycl::group<1> g) {
 	    const INT_TYPE first_row = g.get_group_id(0) * rows_per_team;
             const INT_TYPE last_row = first_row + rows_per_team < nrows
@@ -149,6 +172,10 @@ struct cgsolve {
             });
           });
         });
+#ifdef ONLY_DO_SPMV
+        q.wait();	
+	time_spmv_sycl += timer_spmv.seconds();
+#endif
     }
 #endif
 
@@ -265,7 +292,7 @@ struct cgsolve {
         normr = std::sqrt(rtrans);
 
         if (myproc == 0) {
-            std::cout << "Initial Residual = " << normr << std::endl;
+            //std::cout << "Initial Residual = " << normr << std::endl;
         }
 
         double brkdown_tol = std::numeric_limits<double>::epsilon();
@@ -347,7 +374,7 @@ struct cgsolve {
         normr = std::sqrt(rtrans);
 
         if (myproc == 0) {
-            std::cout << "Initial Residual = " << normr << std::endl;
+            //std::cout << "Initial Residual = " << normr << std::endl;
         }
 
         double brkdown_tol = std::numeric_limits<double>::epsilon();
@@ -395,6 +422,13 @@ struct cgsolve {
 #endif
 
     void run_kk_test() {
+#ifdef USE_TPL
+	std::cout << "Using oneMKL\n" << std::endl;
+#endif
+#ifdef ONLY_DO_SPMV
+	time_spmv_kk = 0;
+#endif
+
         Kokkos::Timer timer;
         int num_iters = cg_solve_kk(y, A, x, max_iter, tolerance);
         double time = timer.seconds();
@@ -409,22 +443,25 @@ struct cgsolve {
         double axpby_bytes = x.extent(0) * sizeof(double) * 3;
 
         double GB = (spmv_bytes + dot_bytes + axpby_bytes) / 1024 / 1024 / 1024;
-        printf("Data Transferred = %f GBs\n", GB);
+        //printf("Data Transferred = %f GBs\n", GB);
 
         double spmv_flops = A.nnz() * 2;
         double dot_flops = x.extent(0) * 2;
         double axpby_flops = x.extent(0) * 3;
 
         int spmv_calls = 1 + num_iters;
-        int dot_calls = num_iters;
+        int dot_calls = 2*num_iters;
         int axpby_calls = 2 + num_iters * 3;
 
+#ifdef ONLY_DO_SPMV
+        std::cout << A.num_rows() << " KK(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time_spmv_kk << "GB/s ";
+#else
         // KK info
-        printf("KK: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N, N,
-               N, num_iters, time);
+        //printf("KK: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N, N,
+        //       N, num_iters, time);
         printf(
-            "KK: Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i "
-            "AXPBY: %i\n",
+            "%ld KK: Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i "
+            "AXPBY: %i\n",A.num_rows(),
             1e-9 *
                 (spmv_flops * spmv_calls + dot_flops * dot_calls +
                  axpby_flops * axpby_calls) /
@@ -434,6 +471,7 @@ struct cgsolve {
                  axpby_bytes * axpby_calls) /
                 time,
             spmv_calls, dot_calls, axpby_calls);
+#endif
     }
 
 #if defined(KOKKOS_ENABLE_SYCL)
@@ -456,12 +494,15 @@ struct cgsolve {
         double axpby_flops = x.extent(0) * 3;
 
         int spmv_calls = 1 + num_iters;
-        int dot_calls = num_iters;
+        int dot_calls = 2*num_iters;
         int axpby_calls = 2 + num_iters * 3;
 
-        // SYCL info
-        printf("SYCL: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N,
-               N, N, num_iters, time);
+#ifdef ONLY_DO_SPMV
+        std::cout << "SYCL(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time_spmv_sycl << "GB/s\n";
+#else
+	// SYCL info
+        //printf("SYCL: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N,
+        //       N, N, num_iters, time);
         printf(
             "SYCL: Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i "
             "AXPBY: %i\n",
@@ -474,16 +515,17 @@ struct cgsolve {
                  axpby_bytes * axpby_calls) /
                 time,
             spmv_calls, dot_calls, axpby_calls);
+#endif
     }
 #endif
 
     void run_test() {
-        printf("*******Kokkos***************\n");
-        printf("Kokkos::ExecutionSpace = %s\n",
-               typeid(Kokkos::DefaultExecutionSpace).name());
+        //printf("*******Kokkos***************\n");
+        //printf("Kokkos::ExecutionSpace = %s\n",
+        //       typeid(Kokkos::DefaultExecutionSpace).name());
         run_kk_test();
 #if defined(KOKKOS_ENABLE_SYCL)
-        printf("*******OpenMPTarget***************\n");
+        //printf("*******OpenMPTarget***************\n");
         run_sycl_test();
 #endif
     }

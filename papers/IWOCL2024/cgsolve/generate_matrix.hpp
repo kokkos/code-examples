@@ -24,7 +24,7 @@
 
 #include<Kokkos_Core.hpp>
 
-using INT_TYPE = int;
+using INT_TYPE = int64_t;
 
 template<class MemSpace>
 struct CrsMatrix {
