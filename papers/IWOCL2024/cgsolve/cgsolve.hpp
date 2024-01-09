@@ -25,12 +25,7 @@
 #endif
 using INT_TYPE = int64_t;
 
-//#define ONLY_DO_SPMV
-
-#ifdef ONLY_DO_SPMV
-double time_spmv_kk = 0.;
-double time_spmv_sycl = 0.;
-#endif
+#define ONLY_DO_SPMV
 
 /*
  * There is a bug in the clang OpenMP implementation wherein if the `dot`
@@ -81,15 +76,7 @@ struct cgsolve {
                A.values,      // const values_type& vals,
                A.row_ptr,     // const row_map_type& rowmap,
                A.col_idx);    // const index_type& cols)
-#ifdef ONLY_DO_SPMV
-        Kokkos::fence();
-        Kokkos::Timer timer_spmv;
-#endif
       KokkosSparse::spmv("N", 1.0, matrix, x, 0.0, y);
-#ifdef ONLY_DO_SPMV
-        Kokkos::fence();
-        time_spmv_kk += timer_spmv.seconds();
-#endif
     }
 #else
     template <class YType, class AType, class XType>
@@ -99,10 +86,6 @@ struct cgsolve {
         int vector_size = 4;
         INT_TYPE nrows = y.extent(0);
 	//std::cout << nrows << std::endl;
-#ifdef ONLY_DO_SPMV
-	Kokkos::fence();
-	Kokkos::Timer timer_spmv;
-#endif
 	Kokkos::parallel_for(
             "SPMV",
             Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
@@ -130,10 +113,6 @@ struct cgsolve {
                         y(row) = y_row;
                     });
             });
-#ifdef ONLY_DO_SPMV
-	Kokkos::fence();
-	time_spmv_kk += timer_spmv.seconds();
-#endif
     }
 #endif
 
@@ -151,10 +130,6 @@ struct cgsolve {
         auto yp = y.data();
 
         INT_TYPE n = (nrows + rows_per_team - 1) / rows_per_team;
-#ifdef ONLY_DO_SPMV
-        q.wait();
-        Kokkos::Timer timer_spmv;
-#endif
 	q.submit([&] (sycl::handler& cgh) {
          cgh.parallel_for_work_group(sycl::range<1>(n), sycl::range<1>(team_size), [=](sycl::group<1> g) {
 	    const INT_TYPE first_row = g.get_group_id(0) * rows_per_team;
@@ -172,10 +147,6 @@ struct cgsolve {
             });
           });
         });
-#ifdef ONLY_DO_SPMV
-        q.wait();	
-	time_spmv_sycl += timer_spmv.seconds();
-#endif
     }
 #endif
 
@@ -425,13 +396,18 @@ struct cgsolve {
 #ifdef USE_TPL
 	std::cout << "Using oneMKL\n" << std::endl;
 #endif
-#ifdef ONLY_DO_SPMV
-	time_spmv_kk = 0;
-#endif
 
         Kokkos::Timer timer;
+#ifdef ONLY_DO_SPMV
+	Kokkos::fence();
+	int num_iters = 500;
+	for (unsigned int i=0; i<num_iters+1; ++i)
+          spmv(y, A, x);
+	Kokkos::fence();
+#else
         int num_iters = cg_solve_kk(y, A, x, max_iter, tolerance);
-        double time = timer.seconds();
+#endif
+	double time = timer.seconds();
 
         // Compute Bytes and Flops
         double spmv_bytes =
@@ -454,7 +430,7 @@ struct cgsolve {
         int axpby_calls = 2 + num_iters * 3;
 
 #ifdef ONLY_DO_SPMV
-        std::cout << A.num_rows() << " KK(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time_spmv_kk << "GB/s ";
+        std::cout << A.num_rows() << " KK(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time << "GB/s ";
 #else
         // KK info
         //printf("KK: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N, N,
@@ -477,7 +453,15 @@ struct cgsolve {
 #if defined(KOKKOS_ENABLE_SYCL)
     void run_sycl_test() {
         Kokkos::Timer timer;
-        int num_iters = cg_solve_sycl(y, A, x, max_iter, tolerance);
+#ifdef ONLY_DO_SPMV
+	sycl::queue q{sycl::property::queue::in_order()};
+        int num_iters = 500;
+        for (unsigned int i=0; i<num_iters+1; ++i)
+          spmv_sycl(q, y, A, x);
+        q.wait();
+#else
+        int num_iters = cg_solve_kk(y, A, x, max_iter, tolerance);
+#endif
         double time = timer.seconds();
 
         // Compute Bytes and Flops
@@ -498,7 +482,7 @@ struct cgsolve {
         int axpby_calls = 2 + num_iters * 3;
 
 #ifdef ONLY_DO_SPMV
-        std::cout << "SYCL(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time_spmv_sycl << "GB/s\n";
+        std::cout << "SYCL(SPMV) " << ((1.0 / 1024 / 1024 / 1024) * spmv_bytes * spmv_calls)/time << "GB/s\n";
 #else
 	// SYCL info
         //printf("SYCL: CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N,
