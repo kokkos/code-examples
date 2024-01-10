@@ -460,7 +460,7 @@ struct cgsolve {
           spmv_sycl(q, y, A, x);
         q.wait();
 #else
-        int num_iters = cg_solve_kk(y, A, x, max_iter, tolerance);
+        int num_iters = cg_solve_sycl(y, A, x, max_iter, tolerance);
 #endif
         double time = timer.seconds();
 
