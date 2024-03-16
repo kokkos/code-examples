@@ -35,6 +35,7 @@ cmake \
 ```
 
 * CGSolve
+```bash
 cd cgsolve/
 cmake \
   -DCMAKE_CXX_COMPILER=clang++          \
