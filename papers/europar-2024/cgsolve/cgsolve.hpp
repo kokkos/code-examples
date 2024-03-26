@@ -14,7 +14,7 @@
 //
 //@HEADER
 
-#include <generate_matrix.hpp>
+#include "generate_matrix.hpp"
 #include <iostream>
 
 struct cgsolve {

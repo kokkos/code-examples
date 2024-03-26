@@ -19,9 +19,9 @@
   https://mantevo.github.io/pdfs/MantevoOverview.pdf
 */
 
-#include<generate_matrix.hpp>
-//#include <cgsolve.hpp>
-#include <cgsolve_ompx.hpp>
+#include "generate_matrix.hpp"
+//#include "cgsolve.hpp"
+#include "cgsolve_ompx.hpp"
 
 int main(int argc, char* argv[]) {
   Kokkos::initialize(argc,argv);
@@ -36,17 +36,17 @@ int main(int argc, char* argv[]) {
     obj.run_test();
     }
 
-    //// Case 2
-    //{
-    //cgsolve obj(255, max_iter, tolerance);
-    //obj.run_test();
-    //}
+    // Case 2
+    {
+    cgsolve obj(255, max_iter, tolerance);
+    obj.run_test();
+    }
 
-    //// Case 3
-    //{
-    //cgsolve obj(325, max_iter, tolerance);
-    //obj.run_test();
-    //}
+    // Case 3
+    {
+    cgsolve obj(325, max_iter, tolerance);
+    obj.run_test();
+    }
 
   }
   Kokkos::finalize();

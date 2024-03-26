@@ -14,7 +14,7 @@
 //
 //@HEADER
 
-#include <generate_matrix.hpp>
+#include "generate_matrix.hpp"
 #include <iostream>
 #include <ompx.h>
 
@@ -57,8 +57,8 @@ struct cgsolve {
     int team_size     = 16;
     int vector_size   = 1;
 #else
-    int rows_per_team = 32;
-    int team_size     = 32;
+    int rows_per_team = 16;
+    int team_size     = 16;
     int vector_size   = 1;
 #endif
 #else
@@ -107,7 +107,7 @@ struct cgsolve {
     int rows_per_team = 16;
     int team_size     = 16;
     int64_t nrows     = y.extent(0);
-    int vector_size   = 1;
+    int vector_size   = 8;
 
     auto row_ptr = A.row_ptr.data();
     auto values  = A.values.data();
@@ -118,34 +118,54 @@ struct cgsolve {
     int64_t n = (nrows + rows_per_team - 1) / rows_per_team;
     Kokkos::Timer timer;
 
-      int nblocks = (nrows + rows_per_team - 1) / rows_per_team;
-#pragma omp target teams ompx_bare num_teams(nblocks) thread_limit(team_size, vector_size) \
-        firstprivate(rows_per_team, nrows, A)
-      {
-        int blockIdx = ompx::block_id(ompx::dim_x);
-        int blockDimx = ompx::block_dim(ompx::dim_x);
-        int blockDimy = ompx::block_dim(ompx::dim_y);
+    int nblocks = (nrows + rows_per_team - 1) / rows_per_team;
+#pragma omp target teams ompx_bare num_teams(nblocks) \
+    thread_limit(vector_size, team_size, 1)           \
+    firstprivate(rows_per_team, nrows, A)             \
+    ompx_dyn_cgroup_mem(vector_size *team_size * sizeof(double))
+    {
+      int blockIdx  = ompx::block_id(ompx::dim_x);
+      int blockDimx = ompx::block_dim(ompx::dim_x);
+      int blockDimy = ompx::block_dim(ompx::dim_y);
 
-        int threadIdx = ompx::thread_id(ompx::dim_x);
-        int threadIdy = ompx::thread_id(ompx::dim_y);
+      int threadIdx = ompx::thread_id(ompx::dim_x);
+      int threadIdy = ompx::thread_id(ompx::dim_y);
 
-          const int64_t first_row = blockIdx * rows_per_team;
-          const int64_t last_row  = first_row + rows_per_team < nrows
-                                        ? first_row + rows_per_team
-                                        : nrows;
+      const int64_t first_row = blockIdx * rows_per_team;
+      const int64_t last_row =
+          first_row + rows_per_team < nrows ? first_row + rows_per_team : nrows;
 
-          for(int row_ = first_row; row_ < last_row; row_+=blockDimy)
-          {
-              const int row = row_ + threadIdy;
-                const int64_t row_start  = A.row_ptr(row);
-                const int64_t row_length = A.row_ptr(row + 1) - row_start;
-          double y_row = 0.;
-          for (int64_t i = 0; i < row_length; i+=blockDimx) {
-            y_row += values[i + threadIdy + row_start] * xp[col_idx[i + threadIdy + row_start]];
-          }
+      double *buf =
+          static_cast<double *>(llvm_omp_target_dynamic_shared_alloc());
+
+      for (int64_t j = first_row; j < last_row; j += blockDimy) {
+        int64_t row              = j + threadIdy;
+        const int64_t row_start  = row_ptr[row];
+        const int64_t row_length = row_ptr[row + 1] - row_start;
+
+        double y_row = 0.;
+
+        // Clear up shared memory
+        buf[threadIdy * blockDimx + threadIdx] = 0.;
+        ompx_sync_block_acq_rel();
+
+        // Partial results update
+        for (int64_t i = threadIdx; i < row_length; i += blockDimx)
+          buf[threadIdy * blockDimx + threadIdx] +=
+              values[i + row_start] * xp[col_idx[i + row_start]];
+
+        ompx_sync_block_acq_rel();
+
+        // Sum up the update
+        if (threadIdx == 0) {
+          for (int tid = 0; tid < blockDimx; ++tid)
+            y_row += buf[threadIdy * blockDimx + tid];
+
           yp[row] = y_row;
-          }
+        }
+        ompx_sync_block_acq_rel();
       }
+    }
 
     double time = timer.seconds();
 
@@ -198,26 +218,25 @@ struct cgsolve {
     auto yp   = y.data();
     auto zp   = z.data();
 
-        const int nthreads=64;
-        const int nblocks = (n%nthreads) ? n/nthreads+1 : n/nthreads;
+    const int nthreads = 64;
+    const int nblocks  = (n % nthreads) ? n / nthreads + 1 : n / nthreads;
 
 #pragma omp target teams ompx_bare num_teams(nblocks) thread_limit(nthreads) \
-        firstprivate(xp,yp,zp)
-        {
-            int blockIdx = ompx::block_id(ompx::dim_x);
-            int blockDimx = ompx::block_dim(ompx::dim_x);
-            int threadIdx = ompx::thread_id(ompx::dim_x);
+    firstprivate(xp, yp, zp)
+    {
+      int blockIdx  = ompx::block_id(ompx::dim_x);
+      int blockDimx = ompx::block_dim(ompx::dim_x);
+      int threadIdx = ompx::thread_id(ompx::dim_x);
 
-           const int i = blockIdx*blockDimx + threadIdx;
-      zp[i] = alpha * xp[i] + beta * yp[i];
-
-        }
+      const int i = blockIdx * blockDimx + threadIdx;
+      zp[i]       = alpha * xp[i] + beta * yp[i];
+    }
   }
 #endif
 
   template <class VType>
   void print_vector(int label, VType v) {
-//    std::cout << "\nPRINT " << v.label() << std::endl << std::endl;
+    //    std::cout << "\nPRINT " << v.label() << std::endl << std::endl;
 
     int myRank = 0;
     Kokkos::parallel_for(
@@ -225,7 +244,7 @@ struct cgsolve {
           printf("%i %i %i %lf\n", label, myRank, i, v(i));
         });
     Kokkos::fence();
- //   std::cout << "\n\nPRINT DONE " << v.label() << std::endl << std::endl;
+    //   std::cout << "\n\nPRINT DONE " << v.label() << std::endl << std::endl;
   }
 
   template <class VType, class AType>
@@ -492,10 +511,10 @@ struct cgsolve {
 #endif
 
   void run_test() {
-    //printf("*******Kokkos***************\n");
-    //printf("Kokkos::ExecutionSpace = %s\n",
-           //typeid(Kokkos::DefaultExecutionSpace).name());
-    //run_kk_test();
+    // printf("*******Kokkos***************\n");
+    // printf("Kokkos::ExecutionSpace = %s\n",
+    // typeid(Kokkos::DefaultExecutionSpace).name());
+    // run_kk_test();
 #if defined(KOKKOS_ENABLE_OPENMPTARGET)
     printf("*******OpenMPTarget***************\n");
     run_ompt_test();
