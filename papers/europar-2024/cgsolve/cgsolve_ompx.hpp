@@ -175,6 +175,7 @@ struct cgsolve {
 
         // Use ompx_shufl instructions to sum up warp values
 #ifdef ompx_shfl
+        y_row = buf[threadIdy * blockDimx + threadIdx];
         for (int offset = vector_size / 2; offset > 0; offset /= 2) {
           y_row += ompx::shfl_down_sync(-1, y_row, offset);
         }
@@ -541,10 +542,10 @@ struct cgsolve {
 #endif
 
   void run_test() {
-    printf("*******Kokkos***************\n");
-    printf("Kokkos::ExecutionSpace = %s\n",
-           typeid(Kokkos::DefaultExecutionSpace).name());
-    run_kk_test();
+    //printf("*******Kokkos***************\n");
+    //printf("Kokkos::ExecutionSpace = %s\n",
+           //typeid(Kokkos::DefaultExecutionSpace).name());
+    //run_kk_test();
 #if defined(KOKKOS_ENABLE_OPENMPTARGET)
     printf("*******OpenMPTarget***************\n");
     run_ompt_test();
