@@ -18,6 +18,8 @@
 #include <iostream>
 #include <ompx.h>
 
+#define ompx_shfl
+
 struct cgsolve {
   int N, max_iter;
   double tolerance;
@@ -171,6 +173,16 @@ struct cgsolve {
 
         ompx_sync_block_acq_rel();
 
+        // Use ompx_shufl instructions to sum up warp values
+#ifdef ompx_shfl
+        for (int offset = vector_size / 2; offset > 0; offset /= 2) {
+          y_row += ompx::shfl_down_sync(-1, y_row, offset);
+        }
+        if (threadIdx == 0) {
+          yp[row] = y_row;
+        }
+#else
+
         // Sum up the update
         if (threadIdx == 0) {
           for (int tid = 0; tid < blockDimx; ++tid)
@@ -179,6 +191,7 @@ struct cgsolve {
           yp[row] = y_row;
         }
         ompx_sync_block_acq_rel();
+#endif
 #endif
       }
     }
