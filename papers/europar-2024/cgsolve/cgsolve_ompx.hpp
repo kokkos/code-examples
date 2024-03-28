@@ -57,8 +57,8 @@ struct cgsolve {
     int team_size     = 16;
     int vector_size   = 1;
 #else
-    int rows_per_team = 16;
-    int team_size     = 16;
+    int rows_per_team = 32;
+    int team_size     = 32;
     int vector_size   = 1;
 #endif
 #else
@@ -118,18 +118,15 @@ struct cgsolve {
     int64_t n = (nrows + rows_per_team - 1) / rows_per_team;
     Kokkos::Timer timer;
 
-    int nblocks = (nrows + rows_per_team - 1) / rows_per_team;
-#pragma omp target teams ompx_bare num_teams(nblocks) \
-    thread_limit(vector_size, team_size, 1)           \
-    firstprivate(rows_per_team, nrows, A)             \
+#pragma omp target teams ompx_bare num_teams(n)                                \
+    thread_limit(vector_size, team_size) firstprivate(rows_per_team, nrows, A) \
     ompx_dyn_cgroup_mem(vector_size *team_size * sizeof(double))
     {
-      int blockIdx  = ompx::block_id(ompx::dim_x);
-      int blockDimx = ompx::block_dim(ompx::dim_x);
-      int blockDimy = ompx::block_dim(ompx::dim_y);
-
-      int threadIdx = ompx::thread_id(ompx::dim_x);
-      int threadIdy = ompx::thread_id(ompx::dim_y);
+      const int blockIdx  = ompx::block_id(ompx::dim_x);
+      const int blockDimx = ompx::block_dim(ompx::dim_x);
+      const int blockDimy = ompx::block_dim(ompx::dim_y);
+      const int threadIdx = ompx::thread_id(ompx::dim_x);
+      const int threadIdy = ompx::thread_id(ompx::dim_y);
 
       const int64_t first_row = blockIdx * rows_per_team;
       const int64_t last_row =
@@ -138,21 +135,39 @@ struct cgsolve {
       double *buf =
           static_cast<double *>(llvm_omp_target_dynamic_shared_alloc());
 
-      for (int64_t j = first_row; j < last_row; j += blockDimy) {
-        int64_t row              = j + threadIdy;
+      for (int64_t row = first_row + threadIdy; row < last_row;
+           row += blockDimy) {
         const int64_t row_start  = row_ptr[row];
         const int64_t row_length = row_ptr[row + 1] - row_start;
 
         double y_row = 0.;
+#ifdef VER1
+        double y_row = 0.;
+        for (int64_t i = 0; i < row_length; ++i) {
+          y_row += values[i + row_start] * xp[col_idx[i + row_start]];
+        }
+        yp[row] = y_row;
+#else
 
-        // Clear up shared memory
-        buf[threadIdy * blockDimx + threadIdx] = 0.;
-        ompx_sync_block_acq_rel();
-
+        // Peel off the first loop to avoid initialization and one
+        // synchronization. Clear up shared memory
+        // buf[threadIdy * blockDimx + threadIdx] = 0.;
+        // ompx_sync_block_acq_rel();
         // Partial results update
-        for (int64_t i = threadIdx; i < row_length; i += blockDimx)
-          buf[threadIdy * blockDimx + threadIdx] +=
-              values[i + row_start] * xp[col_idx[i + row_start]];
+        // for (int64_t i = threadIdx; i < row_length; i += blockDimx)
+        // buf[threadIdy * blockDimx + threadIdx] +=
+        // values[i + row_start] * xp[col_idx[i + row_start]];
+        if (threadIdx < row_length) {
+          buf[threadIdy * blockDimx + threadIdx] =
+              values[threadIdx + row_start] *
+              xp[col_idx[threadIdx + row_start]];
+
+          for (int64_t i = threadIdx + blockDimx; i < row_length;
+               i += blockDimx)
+            buf[threadIdy * blockDimx + threadIdx] +=
+                values[i + row_start] * xp[col_idx[i + row_start]];
+        } else
+          buf[threadIdy * blockDimx + threadIdx] = 0.;
 
         ompx_sync_block_acq_rel();
 
@@ -164,6 +179,7 @@ struct cgsolve {
           yp[row] = y_row;
         }
         ompx_sync_block_acq_rel();
+#endif
       }
     }
 
@@ -373,6 +389,7 @@ struct cgsolve {
     double brkdown_tol = std::numeric_limits<double>::epsilon();
 
     for (int64_t k = 1; k <= max_iter && normr > tolerance; ++k) {
+      //      printf("normr = %f\n",normr);
       if (k == 1) {
         axpby_ompt(p, one, r, zero, r);
       } else {
@@ -511,10 +528,10 @@ struct cgsolve {
 #endif
 
   void run_test() {
-    // printf("*******Kokkos***************\n");
-    // printf("Kokkos::ExecutionSpace = %s\n",
-    // typeid(Kokkos::DefaultExecutionSpace).name());
-    // run_kk_test();
+    printf("*******Kokkos***************\n");
+    printf("Kokkos::ExecutionSpace = %s\n",
+           typeid(Kokkos::DefaultExecutionSpace).name());
+    run_kk_test();
 #if defined(KOKKOS_ENABLE_OPENMPTARGET)
     printf("*******OpenMPTarget***************\n");
     run_ompt_test();
