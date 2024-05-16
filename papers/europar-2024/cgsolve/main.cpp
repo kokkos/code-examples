@@ -20,8 +20,11 @@
 */
 
 #include "generate_matrix.hpp"
-//#include "cgsolve.hpp"
+#if defined(KOKKOS_IMPL_OPENMPTARGET_KERNEL_MODE)
 #include "cgsolve_ompx.hpp"
+#else
+#include "cgsolve.hpp"
+#endif
 
 int main(int argc, char* argv[]) {
   Kokkos::initialize(argc,argv);
