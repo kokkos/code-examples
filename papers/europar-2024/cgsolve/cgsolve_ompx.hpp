@@ -52,16 +52,18 @@ struct cgsolve {
     defined(KOKKOS_ENABLE_SYCL)
     int rows_per_team = 16;
     int team_size     = 16;
-    int vector_size   = 1;
+    int vector_size   = 8;
 #elif defined(KOKKOS_ENABLE_OPENMPTARGET)
 #if defined(KOKKOS_ARCH_INTEL_GPU)
     int rows_per_team = 16;
     int team_size     = 16;
     int vector_size   = 1;
 #else
-    int rows_per_team = 32;
-    int team_size     = 32;
-    int vector_size   = 1;
+#if defined(KOKKOS_IMPL_OPENMPTARGET_KERNEL_MODE)
+    int rows_per_team = 16;
+    int team_size     = 16;
+    int vector_size   = 8;
+#endif
 #endif
 #else
     int rows_per_team = 512;
@@ -542,10 +544,10 @@ struct cgsolve {
 #endif
 
   void run_test() {
-    //printf("*******Kokkos***************\n");
-    //printf("Kokkos::ExecutionSpace = %s\n",
-           //typeid(Kokkos::DefaultExecutionSpace).name());
-    //run_kk_test();
+    printf("*******Kokkos***************\n");
+    printf("Kokkos::ExecutionSpace = %s\n",
+           typeid(Kokkos::DefaultExecutionSpace).name());
+    run_kk_test();
 #if defined(KOKKOS_ENABLE_OPENMPTARGET)
     printf("*******OpenMPTarget***************\n");
     run_ompt_test();
