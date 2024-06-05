@@ -94,6 +94,8 @@ int main(int argc, char **argv) {
 
   checkCudaErrors(
       cudaMemcpy(h_a, a, N * N * sizeof(int), cudaMemcpyDeviceToHost));
+
+  cudaFree(a);
 #else
   printf("IN OpenMP mode\n");
   int *a = static_cast<int *>(
@@ -109,6 +111,7 @@ int main(int argc, char **argv) {
   omp_target_memcpy(h_a, a, N * N * sizeof(int), 0, 0, omp_get_initial_device(),
                     omp_get_default_device());
 
+  omp_target_free(a, omp_get_default_device());
 #endif
   int sum = 0;
   for (int i = 0; i < N; ++i)
@@ -116,5 +119,6 @@ int main(int argc, char **argv) {
 
   printf("sum = %d\n", sum);
 
+  delete[] h_a;
   return 0;
 }
