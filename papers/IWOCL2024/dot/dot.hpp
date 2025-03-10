@@ -49,6 +49,7 @@ struct DOT {
     return time;
   }
 
+#ifdef KOKKOS_ENABLE_SYCL
   double sycl_dot(int R) {
     DOT f(*this);
     int N_ = N;
@@ -81,12 +82,13 @@ struct DOT {
     double time = timer.seconds();
     return time;
   }
+#endif
 
   void run_test(int R) {
     double bytes_moved = 1. * sizeof(double) * N * 2 * R;
     double GB = bytes_moved / 1024 / 1024 / 1024;
     double time_kk = kk_dot(R);
-    double time_sycl = sycl_dot(R);
+    double time_sycl = 1;//sycl_dot(R);
     std::cout << "DOT KK " << N << ":\t" << time_kk << " s\t" << GB/time_kk << " GB/s" << time_sycl << " s\t" << GB/time_sycl << " GB/s\t" << time_kk/time_sycl << '\n';
   }
 };
