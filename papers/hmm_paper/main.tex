@@ -5,6 +5,7 @@
 \usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{import}
+\usepackage{xcolor}
 
 \usepackage{subfig}
 \usepackage{graphicx}
@@ -18,6 +19,19 @@
 \tikzexternalize
 \tikzsetexternalprefix{plots/}
 %\tikzset{external/force remake}
+%%%%%%%%%%%%%%%%%%%%%%% PGFPLOTS DEFAULTS
+\pgfplotstableset{col sep=comma}
+\pgfplotstableset{header=false}
+
+%%%%%%%%%%%%%%%%%%%%%%% COLORS
+\definecolor{KKLightGreen}{RGB}{35,248,222}
+\definecolor{KKGreen}{RGB}{30,140,153}
+\definecolor{KKDarkGreen}{RGB}{14,130,130}
+
+\definecolor{KKLightPurple}{RGB}{201,49,161}
+\definecolor{KKPurple}{RGB}{99,41,199}
+\definecolor{KKDarkPurple}{RGB}{25,23,123}
+
 
 \title{Influence of the Heterogenious Memory Management System on Kokkos Semantics }
 
