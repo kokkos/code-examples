@@ -106,19 +106,15 @@ def write_to_csv(
         print(f"An error occurred during writing: {e}")
 
 
-# ==================================
-# --- Script Execution Example ---
-# ==================================
-
-def process_files(prefix: str):
+def process_files(prefix: str, stride: str):
     #  sizes = [2**8,2**10,2**12,2**14,2**16,2**18,2**20,2**22,2**24,2**26,2**30]
     sizes = [2**8,2**10,2**12,2**14,2**16,2**18,2**20,2**22,2**24]
     # 1. Define your file names and parameters
     INPUT_FILES = [];
     for size in sizes:
-        INPUT_FILES.append(f'{prefix}_{size}_100_100.csv')
+        INPUT_FILES.append(f'{prefix}_{size}_100_100_{stride}.csv')
 
-    OUTPUT_FILE = f'{prefix}_result.csv'
+    OUTPUT_FILE = f'{prefix}_result_{stride}.csv'
     DATA_COL_INDEX = 5  # Assuming the numbers are in the third column (index 2)
     IGNORE_LINES = 49    # Assuming the first line is a header to ignore
 
@@ -134,5 +130,7 @@ def process_files(prefix: str):
 
 
 prefixes = ['device-hostpinned','device-new','device-managed','managed-none','new-none','malloc-none']
-for prefix in prefixes:
-    process_files(prefix)
+strides = [1,2,4,8,16,32]
+for stride in strides:
+    for prefix in prefixes:
+        process_files(prefix, stride)
