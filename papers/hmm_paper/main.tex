@@ -1,0 +1,32 @@
+\documentclass[a4paper,10pt]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{import}
+
+\usepackage{subfig}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
+\tikzset{>=stealth}
+\usetikzlibrary{patterns}
+\usetikzlibrary{pgfplots.statistics}
+\usepgfplotslibrary{external}
+\tikzexternalize
+\tikzsetexternalprefix{plots/}
+%\tikzset{external/force remake}
+
+\title{Influence of the Heterogenious Memory Management System on Kokkos Semantics }
+
+\author{Jakob Bludau}
+
+
+\begin{document}
+\maketitle
+
+\import{./src_plots/}{vector_ping_pong_gh200.tex}
+
+\end{document}
