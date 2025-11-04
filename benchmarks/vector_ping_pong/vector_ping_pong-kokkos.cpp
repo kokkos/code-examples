@@ -265,7 +265,7 @@ void benchmark_and_print(std::ostream& out, unsigned const rep,
   double bw = 1.0e-6 * 2.0 * pingpongs * array_size *
               (double)sizeof(ValueType) / timing;
   out << rep << " , " << array_size << " , " << warmups << " , " << pingpongs
-      << " , " << stride << " , " << bw << " , "
+      << " , " << stride << " , " << bw << " , " << timing << " , "
       << typeid(AllocatorPing()).name() << " , "
       << typeid(AllocatorPong()).name() << "\n";
 }
@@ -295,11 +295,11 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
 
     Kokkos::print_configuration(outfile);
 
-    outfile
-        << "# repetition, arraysize, warmups, pingpongs, stride, bandwidth, "
-           "allocatorPing, "
-           "allocatorPong"
-        << std::endl;
+    outfile << "# repetition, arraysize, warmups, pingpongs, stride, "
+               "bandwidth, time, "
+               "allocatorPing, "
+               "allocatorPong"
+            << std::endl;
 
     for (int rep = 0; rep <= repetitions; ++rep) {
       // TWO VIEWS
