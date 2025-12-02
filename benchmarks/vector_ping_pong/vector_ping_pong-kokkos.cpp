@@ -30,7 +30,8 @@ template <typename MemorySpacePing, typename MemorySpacePong,
 std::tuple<int, double> run_benchmark(VectorValue* ping_data,
                                       VectorValue* pong_data, VectorIndex size,
                                       int warmup_runs, int num_pingpongs,
-                                      VectorIndex stride) {
+                                      VectorIndex stride, int num_pings,
+                                      int num_pongs) {
   auto warmup_view =
       Kokkos::View<VectorValue*, MemorySpacePing>{"warmup", size};
 
@@ -77,16 +78,18 @@ std::tuple<int, double> run_benchmark(VectorValue* ping_data,
       Kokkos::deep_copy(ping_view, pong_view);
     else
       Kokkos::fence();
-    Kokkos::parallel_for(
-        "ping", Kokkos::RangePolicy(ExecutionSpacePing(), 0, size),
-        KOKKOS_LAMBDA(const VectorIndex idx) { ++ping_view(idx); });
+    for (auto j = 0; j < num_pings; ++j)
+      Kokkos::parallel_for(
+          "ping", Kokkos::RangePolicy(ExecutionSpacePing(), 0, size),
+          KOKKOS_LAMBDA(const VectorIndex idx) { ++ping_view(idx); });
     if constexpr (needs_deep_copy)
       Kokkos::deep_copy(pong_view, ping_view);
     else
       Kokkos::fence();
-    Kokkos::parallel_for(
-        "pong", Kokkos::RangePolicy(ExecutionSpacePong(), 0, size),
-        KOKKOS_LAMBDA(const VectorIndex idx) { ++pong_view(idx); });
+    for (auto j = 0; j < num_pings; ++j)
+      Kokkos::parallel_for(
+          "pong", Kokkos::RangePolicy(ExecutionSpacePong(), 0, size),
+          KOKKOS_LAMBDA(const VectorIndex idx) { ++pong_view(idx); });
   }
   Kokkos::fence();
   auto totalTime = timer.seconds();
@@ -98,7 +101,8 @@ std::tuple<int, double> run_benchmark(VectorValue* ping_data,
   Kokkos::parallel_reduce(
       "error_check", Kokkos::RangePolicy(ExecutionSpacePing(), 0, size),
       KOKKOS_LAMBDA(const VectorIndex i, int& error) {
-        error += (ping_view(i) == static_cast<VectorValue>(num_pingpongs) * 2)
+        error += (ping_view(i) == static_cast<VectorValue>(num_pingpongs) *
+                                      (num_pings + num_pongs))
                      ? 0
                      : 1;
       },
@@ -206,17 +210,18 @@ template <typename ValueType, typename ExecutionSpacePing,
           typename ExecutionSpaceFirstTouchPong, typename AllocatorPing,
           typename AllocatorPong, typename IndexType>
 auto benchmark_views(IndexType size, int warmups, int pingpongs,
-                     IndexType stride, AllocatorPing, AllocatorPong) {
+                     IndexType stride, AllocatorPing, AllocatorPong, int pings,
+                     int pongs) {
   ValueType* vec_ping =
       AllocatorPing::template allocate<ValueType>(size * stride);
   ValueType* vec_pong =
       AllocatorPong::template allocate<ValueType>(size * stride);
 
-  auto rc =
-      run_benchmark<Kokkos::SharedSpace, Kokkos::SharedSpace,
-                    ExecutionSpacePing, ExecutionSpacePong,
-                    ExecutionSpaceFirstTouchPing, ExecutionSpaceFirstTouchPong,
-                    true>(vec_ping, vec_pong, size, warmups, pingpongs, stride);
+  auto rc = run_benchmark<Kokkos::SharedSpace, Kokkos::SharedSpace,
+                          ExecutionSpacePing, ExecutionSpacePong,
+                          ExecutionSpaceFirstTouchPing,
+                          ExecutionSpaceFirstTouchPong, true>(
+      vec_ping, vec_pong, size, warmups, pingpongs, stride, pings, pongs);
 
   AllocatorPing::deallocate(vec_ping);
   AllocatorPong::deallocate(vec_pong);
@@ -229,15 +234,17 @@ template <typename ValueType, typename ExecutionSpacePing,
           typename ExecutionSpaceFirstTouchPong, typename AllocatorPingPong,
           typename IndexType>
 auto benchmark_views(IndexType size, int warmups, int pingpongs,
-                     IndexType stride, AllocatorPingPong, NONE) {
+                     IndexType stride, AllocatorPingPong, NONE, int pings,
+                     int pongs) {
   ValueType* vec_ping_pong =
       AllocatorPingPong::template allocate<ValueType>(size * stride);
 
-  auto rc = run_benchmark<Kokkos::SharedSpace, Kokkos::SharedSpace,
-                          ExecutionSpacePing, ExecutionSpacePong,
-                          ExecutionSpaceFirstTouchPing,
-                          ExecutionSpaceFirstTouchPong, false>(
-      vec_ping_pong, vec_ping_pong, size, warmups, pingpongs, stride);
+  auto rc =
+      run_benchmark<Kokkos::SharedSpace, Kokkos::SharedSpace,
+                    ExecutionSpacePing, ExecutionSpacePong,
+                    ExecutionSpaceFirstTouchPing, ExecutionSpaceFirstTouchPong,
+                    false>(vec_ping_pong, vec_ping_pong, size, warmups,
+                           pingpongs, stride, pings, pongs);
 
   AllocatorPingPong::deallocate(vec_ping_pong);
 
@@ -249,12 +256,13 @@ template <typename ValueType, typename IndexType, typename AllocatorPing,
 void benchmark_and_print(std::ostream& out, unsigned const rep,
                          IndexType array_size, unsigned warmups,
                          unsigned pingpongs, IndexType stride,
-                         AllocatorPing Aping, AllocatorPong Apong) {
+                         AllocatorPing Aping, AllocatorPong Apong, int pings,
+                         int pongs) {
   auto [rc, timing] = benchmark_views<ValueType, Kokkos::DefaultExecutionSpace,
                                       Kokkos::DefaultHostExecutionSpace,
                                       Kokkos::DefaultExecutionSpace,
                                       Kokkos::DefaultHostExecutionSpace>(
-      array_size, warmups, pingpongs, stride, Aping, Apong);
+      array_size, warmups, pingpongs, stride, Aping, Apong, pings, pongs);
   if (rc != 0) {
     std::cout << "WRONG RESULT in rep " << rep << " array_size " << array_size
               << " warmups " << warmups << " pingpongs " << pingpongs
@@ -276,10 +284,10 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
     using ValueType = int;
     using IndexType = unsigned int;
 
-    if (argc < 6)
+    if (argc < 8)
       printf(
           "Arguments: mode repetitions array_size "
-          "warmup_runs ping_pongs stride/n");
+          "warmup_runs ping_pongs stride pings pongs/n");
 
     const std::string mode(argv[1]);
     int repetitions      = std::stoi(argv[2]);
@@ -287,10 +295,12 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
     int warmup_runs      = std::stoi(argv[4]);
     int ping_pongs       = std::stoi(argv[5]);
     IndexType stride     = std::stoi(argv[6]);
+    int pings            = std::stoi(argv[7]);
+    int pongs            = std::stoi(argv[8]);
 
     std::ofstream outfile;
     outfile.open(mode + "_" + argv[3] + "_" + argv[4] + "_" + argv[5] + "_" +
-                     argv[6] + ".csv",
+                     argv[6] + "_" + argv[7] + "_" + argv[8] + ".csv",
                  std::ios::out);
 
     Kokkos::print_configuration(outfile);
@@ -307,109 +317,112 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
       if (mode == "managed-managed")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       ManagedMalloc());
+                                       ManagedMalloc(), pings, pongs);
       else if (mode == "managed-new")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       StdNew());
+                                       StdNew(), pings, pongs);
       else if (mode == "managed-malloc")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       StdMalloc());
+                                       StdMalloc(), pings, pongs);
       else if (mode == "managed-hostpinned")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       HostPinnedMalloc());
+                                       HostPinnedMalloc(), pings, pongs);
       else if (mode == "managed-device")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       DeviceMalloc());
+                                       DeviceMalloc(), pings, pongs);
 
       // DEVICE
       else if (mode == "device-managed")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       ManagedMalloc());
+                                       ManagedMalloc(), pings, pongs);
       else if (mode == "device-new")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       StdNew());
+                                       StdNew(), pings, pongs);
       else if (mode == "device-malloc")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       StdMalloc());
+                                       StdMalloc(), pings, pongs);
       else if (mode == "device-hostpinned")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       HostPinnedMalloc());
+                                       HostPinnedMalloc(), pings, pongs);
       else if (mode == "device-device")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       DeviceMalloc());
+                                       DeviceMalloc(), pings, pongs);
 
       // HostPinned
       else if (mode == "hostpinned-managed")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       ManagedMalloc());
+                                       ManagedMalloc(), pings, pongs);
       else if (mode == "hostpinned-new")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       StdNew());
+                                       StdNew(), pings, pongs);
       else if (mode == "hostpinned-malloc")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       StdMalloc());
+                                       StdMalloc(), pings, pongs);
       else if (mode == "hostpinned-hostpinned")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       HostPinnedMalloc());
+                                       HostPinnedMalloc(), pings, pongs);
       else if (mode == "hostpinned-device")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       DeviceMalloc());
+                                       DeviceMalloc(), pings, pongs);
 
       // NEW
       else if (mode == "new-managed")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, StdNew(),
-                                       ManagedMalloc());
+                                       ManagedMalloc(), pings, pongs);
       else if (mode == "new-new")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
-                                       ping_pongs, stride, StdNew(), StdNew());
+                                       ping_pongs, stride, StdNew(), StdNew(),
+                                       pings, pongs);
       else if (mode == "new-malloc")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, StdNew(),
-                                       StdMalloc());
+                                       StdMalloc(), pings, pongs);
       else if (mode == "new-hostpinned")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, StdNew(),
-                                       HostPinnedMalloc());
+                                       HostPinnedMalloc(), pings, pongs);
       else if (mode == "new-device")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, StdNew(),
-                                       DeviceMalloc());
+                                       DeviceMalloc(), pings, pongs);
 
       // ONE VIEW
       // MANAGED
       else if (mode == "managed-none")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       NONE());
+                                       NONE(), pings, pongs);
       else if (mode == "hostpinned-none")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, ManagedMalloc(),
-                                       NONE());
+                                       NONE(), pings, pongs);
       else if (mode == "device-none")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
                                        ping_pongs, stride, DeviceMalloc(),
-                                       NONE());
+                                       NONE(), pings, pongs);
       else if (mode == "malloc-none")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
-                                       ping_pongs, stride, StdMalloc(), NONE());
+                                       ping_pongs, stride, StdMalloc(), NONE(),
+                                       pings, pongs);
       else if (mode == "new-none")
         benchmark_and_print<ValueType>(outfile, rep, array_size, warmup_runs,
-                                       ping_pongs, stride, StdNew(), NONE());
+                                       ping_pongs, stride, StdNew(), NONE(),
+                                       pings, pongs);
     }
     outfile.close();
   }
