@@ -284,23 +284,24 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
     using ValueType = int;
     using IndexType = unsigned int;
 
-    if (argc < 8)
+    if (argc < 9)
       printf(
-          "Arguments: mode repetitions array_size "
+          "Arguments: prefix mode repetitions array_size "
           "warmup_runs ping_pongs stride pings pongs/n");
 
-    const std::string mode(argv[1]);
-    int repetitions      = std::stoi(argv[2]);
-    IndexType array_size = std::stoi(argv[3]);
-    int warmup_runs      = std::stoi(argv[4]);
-    int ping_pongs       = std::stoi(argv[5]);
-    IndexType stride     = std::stoi(argv[6]);
-    int pings            = std::stoi(argv[7]);
-    int pongs            = std::stoi(argv[8]);
+    const std::string prefix(argv[1]);
+    const std::string mode(argv[2]);
+    int repetitions      = std::stoi(argv[3]);
+    IndexType array_size = std::stoi(argv[4]);
+    int warmup_runs      = std::stoi(argv[5]);
+    int ping_pongs       = std::stoi(argv[6]);
+    IndexType stride     = std::stoi(argv[7]);
+    int pings            = std::stoi(argv[8]);
+    int pongs            = std::stoi(argv[9]);
 
     std::ofstream outfile;
-    outfile.open(mode + "_" + argv[3] + "_" + argv[4] + "_" + argv[5] + "_" +
-                     argv[6] + "_" + argv[7] + "_" + argv[8] + ".csv",
+    outfile.open(prefix + mode + "_" + argv[3] + "_" + argv[4] + "_" + argv[5] +
+                     "_" + argv[6] + "_" + argv[7] + "_" + argv[8] + ".csv",
                  std::ios::out);
 
     Kokkos::print_configuration(outfile);

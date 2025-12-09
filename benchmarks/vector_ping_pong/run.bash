@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+executable=$1
+prefix=$2
+
 declare -a variations=("device-hostpinned" "device-new" "device-managed" "managed-none" "new-none" "malloc-none" "device-none")
 
 for warmups in 100
@@ -16,7 +19,7 @@ do
             do
             for variation in "${variations[@]}"
               do
-              ./build/vector_ping_pong "$variation" 10 "$((size))" "${warmups}" "${pingpongs}" "${stride}" "${pings}" "${pongs}"
+              ${executable} "${prefix}" "$variation" 10 "$((size))" "${warmups}" "${pingpongs}" "${stride}" "${pings}" "${pongs}"
             done
           done
         done
