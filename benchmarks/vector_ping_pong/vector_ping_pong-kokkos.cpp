@@ -275,7 +275,8 @@ void benchmark_and_print(std::ostream& out, unsigned const rep,
   out << rep << " , " << array_size << " , " << warmups << " , " << pingpongs
       << " , " << stride << " , " << bw << " , " << timing << " , "
       << typeid(AllocatorPing()).name() << " , "
-      << typeid(AllocatorPong()).name() << "\n";
+      << typeid(AllocatorPong()).name() << " , " << pings << " , " << pongs
+      << "\n";
 }
 
 int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
@@ -300,8 +301,9 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
     int pongs            = std::stoi(argv[9]);
 
     std::ofstream outfile;
-    outfile.open(prefix + mode + "_" + argv[3] + "_" + argv[4] + "_" + argv[5] +
-                     "_" + argv[6] + "_" + argv[7] + "_" + argv[8] + ".csv",
+    outfile.open(prefix + "_" + mode + "_" + argv[3] + "_" + argv[4] + "_" +
+                     argv[5] + "_" + argv[6] + "_" + argv[7] + "_" + argv[8] +
+                     "_" + argv[9] + ".csv",
                  std::ios::out);
 
     Kokkos::print_configuration(outfile);
@@ -309,7 +311,9 @@ int main(int argc, char* argv[]) {  // NOLINT(bugprone-exception-escape)
     outfile << "# repetition, arraysize, warmups, pingpongs, stride, "
                "bandwidth, time, "
                "allocatorPing, "
-               "allocatorPong"
+               "allocatorPong, "
+               "pings, "
+               "pongs "
             << std::endl;
 
     for (int rep = 0; rep <= repetitions; ++rep) {
