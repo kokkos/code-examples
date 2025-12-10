@@ -19,7 +19,9 @@ do
             do
             for variation in "${variations[@]}"
               do
+              echo "running: ${prefix} $variation 10 $((size)) ${warmups} ${pingpongs} ${stride} ${pings} ${pongs}"
               ${executable} "${prefix}" "$variation" 10 "$((size))" "${warmups}" "${pingpongs}" "${stride}" "${pings}" "${pongs}"
+              echo "done: ${prefix} $variation 10 $((size)) ${warmups} ${pingpongs} ${stride} ${pings} ${pongs}"
             done
           done
         done
@@ -27,3 +29,4 @@ do
     done
   done
 done
+echo "FINISH ${prefix}"
