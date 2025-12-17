@@ -107,7 +107,7 @@ def write_to_csv(
 
 
 def process_files(prefix: str, stride: str):
-    #  sizes = [2**8,2**10,2**12,2**14,2**16,2**18,2**20,2**22,2**24,2**26,2**30]
+    #  sizes = [2**8,2**10,2**12,2**14,2**16,2**18,2**20,2**22,2**24,2**26]
     sizes = [2**8,2**10,2**12,2**14,2**16,2**18,2**20,2**22,2**24]
     # 1. Define your file names and parameters
     INPUT_FILES = [];
