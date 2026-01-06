@@ -116,7 +116,7 @@ def process_files(hardware: str, prefix: str, stride: str, ping: str, pong: str)
 
     OUTPUT_FILE = f'{prefix}_result_{stride}_{ping}_{pong}.csv'
     DATA_COL_INDEX = 5  # Assuming the numbers are in the third column (index 2)
-    IGNORE_LINES = 50    # Assuming the first line is a header to ignore
+    IGNORE_LINES = 81    # Assuming the first line is a header to ignore
 
     header_line = []
     out_lines = []
@@ -129,7 +129,7 @@ def process_files(hardware: str, prefix: str, stride: str, ping: str, pong: str)
     write_to_csv(OUTPUT_FILE,header_line,out_lines)
 
 
-hardware = 'gh200'
+hardware = 'mi300a'
 prefixes = ['device-hostpinned','device-new','device-managed','managed-none','new-none','malloc-none']
 strides = [1,2,4,8,16,32]
 pings = [1]

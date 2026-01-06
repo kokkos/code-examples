@@ -19,12 +19,12 @@
   xtick=data,
 	%point meta=y *10^-7 % the displayed number
 ]
-	\addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_1.csv};
-	\addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_1.csv};
-	\addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_1.csv};
-	\addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_1.csv};
-	\addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_1.csv};
-	\addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_1.csv};
+	\addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_1_1_1.csv};
+	\addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_1_1_1.csv};
+	\addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_1_1_1.csv};
+	\addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_1_1_1.csv};
+	\addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_1_1_1.csv};
+	\addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_1_1_1.csv};
 
 % \addplot
 	% coordinates {(1930,38e6) (1940,42e6)
@@ -36,6 +36,45 @@
 \caption{Stride 1}
 \end{figure}
 
+% \begin{figure}[!ht]
+% \centering
+% \begin{tikzpicture}
+% \begin{semilogxaxis}[
+    % width=\textwidth,
+    % log basis x = 2,
+	% %x tick label style={
+	% %	/pgf/number format/1000 sep=},
+  % ymin=0,
+  % %ymax=2000,
+  % ylabel={Bandwith $[GB/s]$},
+  % xlabel={Vector size $[-]$},
+	% enlargelimits=0.15,
+	% legend style={at={(0.5,-0.25)},
+		% anchor=north,legend columns=-1},
+	% ybar=2pt,% configures `bar shift'
+	% bar width=3pt,
+	% %nodes near coords,
+  % xtick=data,
+	% %point meta=y *10^-7 % the displayed number
+% ]
+
+	% \addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_32_1_1.csv};
+	% \addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_32_1_1.csv};
+	% \addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_32_1_1.csv};
+	% \addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_32_1_1.csv};
+	% \addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_32_1_1.csv};
+	% \addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_32_1_1.csv};
+
+% % \addplot
+	% % coordinates {(1930,38e6) (1940,42e6)
+		% % (1950,43e6) (1960,45e6) (1970,65e6)};
+
+% \legend{device-hostpinned,device-new,device-managed,new,malloc,managed}
+% \end{semilogxaxis}
+% \end{tikzpicture}
+% \caption{Stride 32}
+% \end{figure}
+
 \begin{figure}[!ht]
 \centering
 \begin{tikzpicture}
@@ -57,51 +96,12 @@
   xtick=data,
 	%point meta=y *10^-7 % the displayed number
 ]
-
-	\addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_32.csv};
-	\addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_32.csv};
-	\addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_32.csv};
-	\addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_32.csv};
-	\addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_32.csv};
-	\addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_32.csv};
-
-% \addplot
-	% coordinates {(1930,38e6) (1940,42e6)
-		% (1950,43e6) (1960,45e6) (1970,65e6)};
-
-\legend{device-hostpinned,device-new,device-managed,new,malloc,managed}
-\end{semilogxaxis}
-\end{tikzpicture}
-\caption{Stride 32}
-\end{figure}
-
-\begin{figure}[!ht]
-\centering
-\begin{tikzpicture}
-\begin{semilogxaxis}[
-    width=\textwidth,
-    log basis x = 2,
-	%x tick label style={
-	%	/pgf/number format/1000 sep=},
-  ymin=0,
-  %ymax=2000,
-  ylabel={Bandwith $[GB/s]$},
-  xlabel={Vector size $[-]$},
-	enlargelimits=0.15,
-	legend style={at={(0.5,-0.25)},
-		anchor=north,legend columns=-1},
-	ybar=2pt,% configures `bar shift'
-	bar width=3pt,
-	%nodes near coords,
-  xtick=data,
-	%point meta=y *10^-7 % the displayed number
-]
-	\addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_4.csv};
-	\addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_4.csv};
-	\addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_4.csv};
-	\addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_4.csv};
-	\addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_4.csv};
-	\addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_4.csv};
+	\addplot+[color=KKLightGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-hostpinned_result_4_1_1.csv};
+	\addplot+[color=KKGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-new_result_4_1_1.csv};
+	\addplot+[color=KKDarkGreen] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/device-managed_result_4_1_1.csv};
+	\addplot+[color=KKLightPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/new-none_result_4_1_1.csv};
+	\addplot+[color=KKPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/malloc-none_result_4_1_1.csv};
+	\addplot+[color=KKDarkPurple] table [x expr={\thisrowno{1}}, y expr={\thisrowno{5}/1000} , col sep=comma]			{./vector_ping_pong/GH200/managed-none_result_4_1_1.csv};
 
 % \addplot
 	% coordinates {(1930,38e6) (1940,42e6)
