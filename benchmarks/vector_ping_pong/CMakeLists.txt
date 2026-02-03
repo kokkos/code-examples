@@ -4,8 +4,8 @@ project(vector_ping_pong CXX)
 include(FetchContent)
 FetchContent_Declare(
     Kokkos
-    URL      https://github.com/kokkos/kokkos/releases/download/5.0.0/kokkos-5.0.0.tar.gz
-    URL_HASH SHA256=c45f3e19c3eb71fc8b7210cb04cac658015fc1839e7cc0571f7406588ff9bcef
+    URL      https://github.com/kokkos/kokkos/releases/download/5.0.1/kokkos-5.0.1.tar.gz
+    URL_HASH SHA256=cf7d8515ca993229929be9f051aecd8f93cde325adac8a4f82ed6848adace218
 )
 FetchContent_MakeAvailable(Kokkos)
 
