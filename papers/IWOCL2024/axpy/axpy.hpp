@@ -17,6 +17,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <cmath>
+#include <iostream>
 
 //#define VECTOR_ADD
 
@@ -44,6 +45,7 @@ struct AXPBY {
 #endif
     }
 
+#ifdef KOKKOS_ENABLE_SYCL
   double sycl_axpby(int R) {
     AXPBY f(*this);
     int N_ = N;
@@ -79,6 +81,7 @@ struct AXPBY {
     double time = timer.seconds();
     return time;
   }
+#endif
 
     double kk_axpby(int R) {
         // Warmup
@@ -98,7 +101,7 @@ struct AXPBY {
         double bytes_moved = 1. * sizeof(double) * N * 3 * R;
         double GB = bytes_moved / 1024 / 1024 / 1024;
         double time_kk = kk_axpby(R);
-	double time_sycl = sycl_axpby(R);
-	std::cout << N << ":\t" << time_kk << " s\t" << GB/time_kk << " GB/s\t" << time_sycl << " s\t" << GB/time_sycl << " GB/s\t" << time_kk/time_sycl << '\n';
+	double time_sycl = 1;//sycl_axpby(R);
+	std::cout << N << "\t" << time_kk << " \t" << GB/time_kk << " \t" << '\n';
     }
 };
