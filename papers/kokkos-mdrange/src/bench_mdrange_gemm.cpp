@@ -46,9 +46,8 @@ void report_results(benchmark::State &state, ViewType view, int data_ratio,
 }  // namespace KokkosBenchmark
 
 struct Tag_Naive_default {};
-struct Tag_Naive_8x8 {};
 struct Tag_Naive_16x16 {};
-// struct Tag_Naive_32x16 {};
+struct Tag_Naive_32x16 {};
 // struct Tag_Naive_16x32 {};
 struct Tag_Flattening {};
 
@@ -69,8 +68,8 @@ template <typename Tag>
 Kokkos::Array<std::int64_t, 2> get_benchmark_tile(const Tag) {
   if constexpr (std::is_same_v<Tag, Tag_Naive_default>) {
     return {0, 0};
-  } else if constexpr (std::is_same_v<Tag, Tag_Naive_8x8>) {
-    return {8, 8};
+  } else if constexpr (std::is_same_v<Tag, Tag_Naive_32x16>) {
+    return {32, 16};
   } else if constexpr (std::is_same_v<Tag, Tag_Naive_16x16>) {
     return {16, 16};
   } else {
@@ -114,7 +113,7 @@ struct MDRange_gemm_naive {
   }
 
   KOKKOS_INLINE_FUNCTION
-  void operator()(Tag_Naive_8x8, const int i, const int j) const {
+  void operator()(Tag_Naive_16x16, const int i, const int j) const {
     scalar_type sum = 0.0;
     for (int k = 0; k < m_K; ++k) {
       sum += m_view_A(i, k) * m_view_B(k, j);
@@ -123,7 +122,7 @@ struct MDRange_gemm_naive {
   }
 
   KOKKOS_INLINE_FUNCTION
-  void operator()(Tag_Naive_16x16, const int i, const int j) const {
+  void operator()(Tag_Naive_32x16, const int i, const int j) const {
     scalar_type sum = 0.0;
     for (int k = 0; k < m_K; ++k) {
       sum += m_view_A(i, k) * m_view_B(k, j);
@@ -292,8 +291,8 @@ GEMM_BENCH_SIZE(function, Kokkos::LayoutLeft, float,  tag)                      
 GEMM_BENCH_SIZE(function, Kokkos::LayoutLeft, Kokkos::Experimental::half_t,  tag)  \
 
 GEMM_BENCH_LAYOUT_DATA_TYPE(run_mdrange_gemm, Tag_Naive_default)
-GEMM_BENCH_LAYOUT_DATA_TYPE(run_mdrange_gemm, Tag_Naive_8x8)
 GEMM_BENCH_LAYOUT_DATA_TYPE(run_mdrange_gemm, Tag_Naive_16x16)
+GEMM_BENCH_LAYOUT_DATA_TYPE(run_mdrange_gemm, Tag_Naive_32x16)
 GEMM_BENCH_LAYOUT_DATA_TYPE(run_mdrange_gemm, Tag_Flattening)
 
 }  // namespace Benchmark
