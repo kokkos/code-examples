@@ -13,6 +13,10 @@ usage() {
   echo ""
   echo "Extra CMake arguments can be passed after '--', e.g.:"
   echo "  $0 -- -DKokkos_ENABLE_OPENMP=ON"
+  echo ""
+  echo "examples: "
+  echo "  $0 --build-dir cuda_build -- -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_COMPILER=g++"
+  echo "  $0 --build-dir hip_build -- -DKokkos_ENABLE_HIP=ON --DKokkos_ARCH_AMD_GFX90A=ON -DCMAKE_CXX_COMPILER=hipcc"
   exit 0
 }
 

@@ -79,6 +79,14 @@ function(ADD_TARGET_LINK_KOKKOS)
   target_link_libraries(${FN_ARGS_TARGET} ${FN_ARGS_LINKS})
 endfunction()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  set(FLAGS_WARNINGS "/W4")
+else()
+  set(FLAGS_WARNINGS "-Wall")
+endif()
+
 add_target_link_kokkos(TARGET "bench_mdrange_stencil" SRC "src/bench_mdrange_stencil.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
 add_target_link_kokkos(TARGET "bench_mdrange_stream" SRC "src/bench_mdrange_stream.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+add_target_link_kokkos(TARGET "bench_mdrange_gemm" SRC "src/bench_mdrange_gemm.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+add_target_link_kokkos(TARGET "bench_teamPolicy_mdrangePolicy" SRC "src/bench_mdrange_teamMD.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
 
