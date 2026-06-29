@@ -10,7 +10,7 @@ set(VERSION "502" CACHE STRING "Kokkos versions to build against")
 if(VERSION STREQUAL "502")
   set(VERSION_COMMIT_SHA "dfceb77277e23361cccfbcf72c0468fd8475153e")
 elseif(VERSION STREQUAL "device_iterate")
-  set(VERSION_COMMIT_SHA "c74a1a019e89a5ea9c393b63fe254f966d9e5f03")
+  set(VERSION_COMMIT_SHA "7a78e92a38f4f40f6dc84766d8b5acd14452e77b")  # Fix using non device-copyable functors in MDRangePolicy
 elseif(VERSION STREQUAL "tile")
   set(VERSION_COMMIT_SHA "c6ab03f33c679e180f804dc706d53822e353c6e9")
 elseif(VERSION STREQUAL "no_stride")
