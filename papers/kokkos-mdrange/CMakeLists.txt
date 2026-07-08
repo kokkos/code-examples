@@ -89,4 +89,5 @@ add_target_link_kokkos(TARGET "bench_mdrange_stencil" SRC "src/bench_mdrange_ste
 add_target_link_kokkos(TARGET "bench_mdrange_stream" SRC "src/bench_mdrange_stream.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
 add_target_link_kokkos(TARGET "bench_mdrange_gemm" SRC "src/bench_mdrange_gemm.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
 add_target_link_kokkos(TARGET "bench_teamPolicy_mdrangePolicy" SRC "src/bench_mdrange_teamMD.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+add_target_link_kokkos(TARGET "bench_teamPolicy_amr" SRC "src/bench_teamMD_amr.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
 
