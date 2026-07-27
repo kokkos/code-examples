@@ -160,13 +160,94 @@
 }
 
 \section{Kokkos' Memory Management Interface}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Different versions of memory and which memory is accessible where. Which memory needs to be explicitly copied
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item How do the previously mentioned memory managemnt methods translate to Kokkos functions.
+\item Explain that deep\_copy etc can just become a no-op based on what the spaces and accessibility traits are.
+\item State that we prefer users to spell out the necessary memory transfers due to the reason mentioned above.
+\end{itemize}
+}
 
+\section{Vector ping-pong as proxy for scientific codes}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What a vector is
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Vector as continuous memory that can be copied or moved to another compute resource.
+\item Basic algorithm is repeated access on the device and the host
+\item Number of consecutive accesses on the same resource can be set. This allows to set how often transfers between host and device happen during execution.
+\item Number of floatingpoint operations per memory operation can be varied. This allows to traverse the space of memory-bound to compute-bound freely.
+\item Stride of the individual accesses can be set. This allows to control how much of a loaded cacheline can be used
+\end{itemize}
+}
 
+\section{Benchmark settings}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What the vector ping pong is and what are parameters that can be set.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item metric for individual kernel's memory bandwidth as function of flops,stride
+\item metric for completing a cycle (this will need to be defined)
+\end{itemize}
+}
 
-\section{GH200}
+\section{Benchmark results}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What does which metric say
+\item What are the configurations
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item individual kernel's memory bandwidth as function of flops,stride and memory mechanism.
+\item performance for completing a cycle (this will need to be defined) as function of flops, stride and memory mechanism.
+\end{itemize}
+}
+
+\subsection{GH200}
 \import{./src_plots/}{vector_ping_pong_gh200.tex}
 
-\section{MI300A}
+\subsection{MI300A}
 \import{./src_plots/}{vector_ping_pong_mi300a.tex}
+
+\section{Discussion}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What does which metric say
+\item What are the configurations
+\item What are the benchmark results
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Comparison of the bandwidth of individual kernels vs the whole program
+\item Comparison which memory management method is good in which regime of the benchmark (size, flops, stride, architecture)
+\end{itemize}
+}
+
+\section{Conclusion}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item The rest of the paper
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item maybe that there is different memory management preferences for different architectures
+\item that explicitly specifying memory transfers is the most general solution, as these can easily be converted to no-ops if another method is faster.
+\end{itemize}
+}
 
 \end{document}
