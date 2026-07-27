@@ -1,8 +1,8 @@
 #!/bin/bash
-set -e
+set -eu
 
-VERSIONS=("502" "device_iterate" "tile" "no_stride")
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/.versions.sh"
 EXTRA_CMAKE_ARGS=()
 
 usage() {
@@ -52,4 +52,3 @@ for VERSION in "${VERSIONS[@]}"; do
     -DVERSION="${VERSION}" \
     "${EXTRA_CMAKE_ARGS[@]}"
 done
-

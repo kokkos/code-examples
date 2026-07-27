@@ -24,7 +24,7 @@ import scienceplots
 RANKS = [2, 3, 4, 5, 6]
 REFERENCE_COLOR = "#9AA0A6"          # neutral grey for the Base reference bar
 # Optional: override automatic labels (one per file, in order)
-LABELS = ["Baseline", "Refactored", "New tile size", "No Grid stride"]
+LABELS = ["Baseline", "Refactored", "New tile size", "No grid-stride"]
 #LABELS = None
 
 plt.style.use(['science', 'ieee', 'std-colors'])

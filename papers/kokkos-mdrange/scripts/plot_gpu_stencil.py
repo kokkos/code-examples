@@ -4,8 +4,14 @@
 Compare MDRangeStencil benchmark results from multiple Google Benchmark JSON files.
 Plots execution time (ms) for MDRange LayoutLeft and LayoutRight, grouped by problem size.
 
+The order of the files should correspond to the following labels:
+1) baseline
+2) refactored
+3) new tile size
+4) no grid-stride
+
 Usage:
-    python plot_gpu_stencil.py file1.json file2.json [file3.json]
+    python plot_gpu_stencil.py file1.json file2.json file3.json file4.json
 """
 
 import json
@@ -24,9 +30,9 @@ RANKS_SIZES = {
     2: [10240],
     3: [512],
 }
-# Optional: override automatic labels (one per file, in order)
-LABELS = ["Baseline", "Refactored", "New tile size", "No Grid stride"]
-# LABELS = None
+
+# Figs labels (one per file, in order)
+LABELS = ["Baseline", "Refactored", "New tile size", "No grid-stride"]
 
 # Colour encodes the file, hatch encodes the layout (same order as VARIANTS).
 HATCHES = ["", "///"]  # LayoutLeft = solid, LayoutRight = hatched
@@ -36,15 +42,6 @@ plt.style.use(['science', 'ieee', 'std-colors'])
 def load_benchmarks(filepath):
     with open(filepath) as f:
         return json.load(f)
-
-
-def extract_label(filepath):
-    base = os.path.splitext(os.path.basename(filepath))[0]
-    for prefix in ["benchmark_", "bench_", "result_", "test_"]:
-        if base.lower().startswith(prefix):
-            base = base[len(prefix):]
-    return base
-
 
 def extract_metrics(data, variants, ranks_sizes):
     """
@@ -233,24 +230,20 @@ def main():
         print("Warning: only the first 4 files will be used.")
         filepaths = filepaths[:4]
 
-    labels = LABELS if LABELS and len(LABELS) >= len(filepaths) else [
-        extract_label(fp) for fp in filepaths
-    ]
-
     all_metrics = []
     for fp in filepaths:
         data = load_benchmarks(fp)
         metrics = extract_metrics(data, VARIANTS, RANKS_SIZES)
         all_metrics.append(metrics)
 
-    fig1 = plot_comparison(all_metrics, labels)
-    fig1.savefig("stencil_time.png", dpi=600, bbox_inches="tight")
-    print("Saved: stencil_time.png")
+    fig1 = plot_comparison(all_metrics, LABELS)
+    fig1.savefig("mdrange_stencil_time.png", dpi=600, bbox_inches="tight")
+    print("Saved: mdrange_stencil_time.png")
 
-    fig2 = plot_speedup(all_metrics, labels)
+    fig2 = plot_speedup(all_metrics, LABELS)
     if fig2 is not None:
-        fig2.savefig("stencil_speedup.png", dpi=600, bbox_inches="tight")
-        print("Saved: stencil_speedup.png")
+        fig2.savefig("mdrange_stencil_speedup.png", dpi=600, bbox_inches="tight")
+        print("Saved: mdrange_stencil_speedup.png")
 
     # Avoid showing plots in interactive mode
     # plt.show()
