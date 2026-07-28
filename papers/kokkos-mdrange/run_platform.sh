@@ -3,7 +3,7 @@ set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/.versions.sh"
-BUILD_FOLDER=""
+BUILD_DIR=""
 PLATFORM=""
 
 usage() {
@@ -21,12 +21,12 @@ usage() {
 if [[ $# -lt 2 ]]; then
   usage
 else
-  BUILD_FOLDER="${SCRIPT_DIR}/$1"
+  BUILD_DIR="${SCRIPT_DIR}/$1"
   PLATFORM="$2"
 fi
 
-if [ ! -d "$BUILD_FOLDER" ]; then
-  echo "$BUILD_FOLDER does not exist."
+if [ ! -d "$BUILD_DIR" ]; then
+  echo "$BUILD_DIR does not exist."
   exit 1
 fi
 
@@ -39,7 +39,7 @@ done
 
 for BENCH in "${BENCHMARKS[@]}"; do
   for VERSION in "${VERSIONS[@]}"; do
-    EXE="${BUILD_FOLDER}/build_${VERSION}/bench_mdrange_${BENCH}"
+    EXE="${BUILD_DIR}/build_${VERSION}/bench_mdrange_${BENCH}"
     OUT="${OUT_DIR}/${BENCH}_bench/${PLATFORM}_${BENCH}_${VERSION}.json"
  
     if [[ ! -x "${EXE}" ]]; then
