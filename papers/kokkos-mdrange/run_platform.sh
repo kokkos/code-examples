@@ -3,12 +3,14 @@ set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/.versions.sh"
+CPU_GPU=""
 BUILD_DIR=""
 PLATFORM=""
 
 usage() {
-  echo "Usage: $0 build_dir platform"
+  echo "Usage: $0 --cpu/gpu build_dir platform"
   echo ""
+  echo "  --cpu/gpu      Specify CPU or GPU (compulsory)"
   echo "  build_dir      Specify the build directory"
   echo "  platform       Specify the platform"
   echo ""
@@ -18,11 +20,21 @@ usage() {
   exit 0
 }
 
-if [[ $# -lt 2 ]]; then
+if [[ $# -lt 3 ]]; then
   usage
 else
-  BUILD_DIR="${SCRIPT_DIR}/$1"
-  PLATFORM="$2"
+  CPU_GPU="$1"
+  BUILD_DIR="${SCRIPT_DIR}/$2"
+  PLATFORM="$3"
+fi
+
+if [ "$CPU_GPU" == "--gpu" ]; then
+  VERSIONS=(${VERSIONS_GPU[*]})
+elif [ "$CPU_GPU" == "--cpu" ]; then
+  VERSIONS=(${VERSIONS_CPU[*]})
+else
+  echo "First option should be --gpu or --cpu"
+  exit 1
 fi
 
 if [ ! -d "$BUILD_DIR" ]; then

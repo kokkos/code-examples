@@ -15,8 +15,12 @@ elseif(VERSION STREQUAL "new_tile")
   set(VERSION_COMMIT_SHA "c6ab03f33c679e180f804dc706d53822e353c6e9")
 elseif(VERSION STREQUAL "no_stride")
   set(VERSION_COMMIT_SHA "b77b924f9325ff17261f2fe05cca0423cd0b1fa4")
+elseif(VERSION STREQUAL "520")
+  set(VERSION_COMMIT_SHA "e484fccb507025830126f722c843d81aea95a5de")  # Kokkos 5.2.0 release
+elseif(VERSION STREQUAL "auto_vect")
+  set(VERSION_COMMIT_SHA "f2cac8106299ab024003329d3b600363ae4a125d")  # auto-vectorization in tiles PR
 else()
-  message(FATAL_ERROR "Unsupported version: ${VERSION}")
+  message(FATAL_ERROR "Unsupported version: ${}")
 endif()
 
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
@@ -49,6 +53,12 @@ else()
   endif()
 endif()
 
+if(VERSION STREQUAL "auto_vect")
+  set(KOKKOS_GIT_REPOSITORY "https://github.com/science-enthusiast/kokkos.git")  # CPU PR branch
+else()
+  set(KOKKOS_GIT_REPOSITORY "https://github.com/kokkos/kokkos.git")  # Kokkos repo
+endif()
+
 set(KOKKOS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/kokkos_${VERSION}/)
 if(EXISTS ${KOKKOS_SOURCE_DIR})
   message(STATUS "Kokkos ${VERSION} found in ${KOKKOS_SOURCE_DIR}")
@@ -57,7 +67,7 @@ else()
   message(STATUS "Kokkos ${VERSION} not found. Fetching from GitHub...")
   FetchContent_Declare(
     Kokkos
-    GIT_REPOSITORY https://github.com/kokkos/kokkos.git
+    GIT_REPOSITORY ${KOKKOS_GIT_REPOSITORY}
     GIT_TAG        ${VERSION_COMMIT_SHA}
     SOURCE_DIR     ${KOKKOS_SOURCE_DIR}
   )
@@ -85,9 +95,15 @@ else()
   set(FLAGS_WARNINGS "-Wall")
 endif()
 
-add_target_link_kokkos(TARGET "bench_mdrange_stencil" SRC "src/bench_mdrange_stencil.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
-add_target_link_kokkos(TARGET "bench_mdrange_stream" SRC "src/bench_mdrange_stream.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
-add_target_link_kokkos(TARGET "bench_mdrange_gemm" SRC "src/bench_mdrange_gemm.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
-add_target_link_kokkos(TARGET "bench_teamPolicy_mdrangePolicy" SRC "src/bench_mdrange_teamMD.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
-add_target_link_kokkos(TARGET "bench_teamPolicy_amr" SRC "src/bench_teamMD_amr.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
-
+if(VERSION STREQUAL "auto_vect" OR VERSION STREQUAL "520")
+  set(FLAGS_OPTIM "-O3")
+  add_target_link_kokkos(TARGET "bench_mdrange_stencil" SRC "src/bench_mdrange_stencil_cpu.cpp" FLAGS ${FLAGS_WARNINGS} ${FLAGS_OPTIM} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_mdrange_stream" SRC "src/bench_mdrange_stream_cpu_1.cpp" FLAGS ${FLAGS_WARNINGS} ${FLAGS_OPTIM} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_mdrange_stream_no_templates" SRC "src/bench_mdrange_stream_cpu_2.cpp" FLAGS ${FLAGS_WARNINGS} ${FLAGS_OPTIM} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+else()
+  add_target_link_kokkos(TARGET "bench_mdrange_stencil" SRC "src/bench_mdrange_stencil.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_mdrange_stream" SRC "src/bench_mdrange_stream.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_mdrange_gemm" SRC "src/bench_mdrange_gemm.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_teamPolicy_mdrangePolicy" SRC "src/bench_mdrange_teamMD.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+  add_target_link_kokkos(TARGET "bench_teamPolicy_amr" SRC "src/bench_teamMD_amr.cpp" FLAGS ${FLAGS_WARNINGS} LINKS "Kokkos::kokkos" "benchmark::benchmark")
+endif()
