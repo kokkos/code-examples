@@ -6,4 +6,4 @@ VERSIONS_CPU=("520" "auto_vect")
 
 # Benchmarks used to produce the figures of the paper.
 
-BENCHMARKS=("stencil" "stream" "stream_no_templates")
+BENCHMARKS=("stencil" "stream")

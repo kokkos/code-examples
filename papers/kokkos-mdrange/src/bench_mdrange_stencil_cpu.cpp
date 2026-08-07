@@ -6,13 +6,18 @@
 #include <iostream>
 #include <numeric>
 #include <limits>
+#include <string>
 
 #include <benchmark/benchmark.h>
 
 #include <Kokkos_Core.hpp>
 
 int main(int argc, char** argv) {
-  Kokkos::initialize(Kokkos::InitializationSettings().set_num_threads(4));
+  int num_threads = 1;
+  if (argc > 1)
+    num_threads = std::stoi(argv[1]);
+
+  Kokkos::initialize(Kokkos::InitializationSettings().set_num_threads(num_threads));
   Kokkos::print_configuration(std::cout, true);
   benchmark::Initialize(&argc, argv);
   benchmark::SetDefaultTimeUnit(benchmark::kMillisecond);
@@ -131,18 +136,6 @@ void bench_mdrange(benchmark::State& state, std::index_sequence<Idx...>) {
   for (std::size_t i = 0; i < dims.size(); i++) {
     dims[i]  = state.range(0);
     tiles[i] = state.range(1);
-  }
-
-  int innermost_tile_dim = state.range(2);
-
-  constexpr Kokkos::Iterate iteration_pattern =
-      LayoutToIterationPattern<typename FunctorType::layout_type>::pattern;
-
-  if constexpr (iteration_pattern == Kokkos::Iterate::Right) {
-    tiles[dims.size() - 1] =
-        std::min(dims[dims.size() - 1], innermost_tile_dim);
-  } else {
-    tiles[0] = std::min(dims[0], innermost_tile_dim);
   }
 
   const auto policy = FunctorType::get_policy(dims, tiles);
@@ -469,10 +462,13 @@ struct CollapseAll {
 #define MDRANGE_STENCIL_BENCHMARK(functor, dim, layout, sizes, ...)           \
   BENCHMARK(bench_mdrange<                                                    \
                 functor<Kokkos::DefaultExecutionSpace, dim, Kokkos::layout>>) \
+      ->Iterations(300)                                                       \
+      ->Repetitions(1)                                                        \
       ->UseManualTime()                                                       \
       ->Unit(benchmark::kMillisecond)                                         \
       ->Name("MDRangeStencil_" #dim "D_" #functor "_" #layout)                \
-      ->ArgNames({"size", "tile_size", "innermost_tile_dim"})                 \
+      ->ArgNames({"size", "tile_size", "penultimate_tile_size",               \
+                  "innermost_tile_size"})                                     \
       ->ArgsProduct({sizes, __VA_ARGS__});
 
 #define SIZES_2D \
@@ -481,12 +477,15 @@ struct CollapseAll {
   { 256, 384, 512 }
 #define SIZES_4D \
   { 64, 96 }
-MDRANGE_STENCIL_BENCHMARK(MDRange, 2, LayoutRight, SIZES_2D, {8}, {256})
-MDRANGE_STENCIL_BENCHMARK(MDRange, 3, LayoutRight, SIZES_3D, {8}, {256})
-MDRANGE_STENCIL_BENCHMARK(MDRange, 4, LayoutRight, SIZES_4D, {8}, {256})
-MDRANGE_STENCIL_BENCHMARK(MDRange, 2, LayoutLeft, SIZES_2D, {8}, {256})
-MDRANGE_STENCIL_BENCHMARK(MDRange, 3, LayoutLeft, SIZES_3D, {8}, {256})
-MDRANGE_STENCIL_BENCHMARK(MDRange, 4, LayoutLeft, SIZES_4D, {8}, {256})
+
+// 0 for tile_size argument leads to default tile sizes
+
+MDRANGE_STENCIL_BENCHMARK(MDRange, 2, LayoutRight, SIZES_2D, {0})
+MDRANGE_STENCIL_BENCHMARK(MDRange, 3, LayoutRight, SIZES_3D, {0})
+MDRANGE_STENCIL_BENCHMARK(MDRange, 4, LayoutRight, SIZES_4D, {0})
+MDRANGE_STENCIL_BENCHMARK(MDRange, 2, LayoutLeft, SIZES_2D, {0})
+MDRANGE_STENCIL_BENCHMARK(MDRange, 3, LayoutLeft, SIZES_3D, {0})
+MDRANGE_STENCIL_BENCHMARK(MDRange, 4, LayoutLeft, SIZES_4D, {0})
 
 /*
 MDRANGE_STENCIL_BENCHMARK(CollapseTwo, 3, LayoutRight, SIZES_3D, {-1})

@@ -3,15 +3,20 @@
 
 #include <functional>
 #include <iostream>
-#include <numeric>
 #include <limits>
+#include <numeric>
+#include <string>
 
 #include <benchmark/benchmark.h>
 
 #include <Kokkos_Core.hpp>
 
 int main(int argc, char **argv) {
-  Kokkos::initialize(Kokkos::InitializationSettings().set_num_threads(4));
+  int num_threads = 1;
+  if (argc > 1)
+    num_threads = std::stoi(argv[1]);
+
+  Kokkos::initialize(Kokkos::InitializationSettings().set_num_threads(num_threads));
   Kokkos::print_configuration(std::cout, true);
   benchmark::Initialize(&argc, argv);
   benchmark::SetDefaultTimeUnit(benchmark::kMillisecond);
@@ -132,7 +137,8 @@ struct MDStreamTest {
                                           memory_space>::type;
   using policy_init_type =
       typename policy_selector<Rank, ExecutionSpace, IndexType, void>::type;
-  using bound_type = typename bound_type_selector<policy_init_type>::type;
+  using bound_type       = typename bound_type_selector<policy_init_type>::type;
+  using bound_value_type = typename bound_type::value_type;
 
   view_type m_view_A;
   view_type m_view_B;
@@ -142,7 +148,6 @@ struct MDStreamTest {
   int m_N;
   bound_type m_lower_bounds;
   bound_type m_upper_bounds;
-  bound_type m_tile_dims;
 
   MDStreamTest(const int N) {
     static_assert(Rank >= 1 && Rank <= 6,
@@ -156,14 +161,6 @@ struct MDStreamTest {
     for (int i = 0; i < Rank; ++i) {
       m_lower_bounds[i] = 0;
       m_upper_bounds[i] = m_view_A.extent(i);
-      m_tile_dims[i]    = 8;
-    }
-
-    if constexpr (policy_selector<Rank, ExecutionSpace, IndexType,
-                                  void>::inner_iter == Kokkos::Iterate::Right) {
-      m_tile_dims[Rank - 1] = 256;
-    } else {
-      m_tile_dims[0] = 256;
     }
 
     policy_init_type init_policy(m_lower_bounds, m_upper_bounds);
@@ -177,29 +174,163 @@ struct MDStreamTest {
   }
 
   // Tagged operator()
-  template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, Args... args) const {
-    m_view_A(args...) = static_cast<ScalarType>(m_scalar);
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i) const {
+    m_view_A(i) = static_cast<ScalarType>(m_scalar);
   }
 
-  template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, Args... args) const {
-    m_view_B(args...) = m_view_A(args...);
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i,
+                                         const int j) const {
+    m_view_A(i, j) = static_cast<ScalarType>(m_scalar);
   }
 
-  template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, Args... args) const {
-    m_view_B(args...) = m_scalar * m_view_A(args...);
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i, const int j,
+                                         const int k) const {
+    m_view_A(i, j, k) = static_cast<ScalarType>(m_scalar);
   }
 
-  template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, Args... args) const {
-    m_view_C(args...) = m_view_A(args...) + m_view_B(args...);
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i, const int j,
+                                         const int k, const int l) const {
+    m_view_A(i, j, k, l) = static_cast<ScalarType>(m_scalar);
   }
 
-  template <typename... Args>
-  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, Args... args) const {
-    m_view_C(args...) = m_view_A(args...) + m_scalar * m_view_B(args...);
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i, const int j,
+                                         const int k, const int l,
+                                         const int m) const {
+    m_view_A(i, j, k, l, m) = static_cast<ScalarType>(m_scalar);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Set, const int i, const int j,
+                                         const int k, const int l, const int m,
+                                         const int n) const {
+    m_view_A(i, j, k, l, m, n) = static_cast<ScalarType>(m_scalar);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i) const {
+    m_view_B(i) = m_view_A(i);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i,
+                                         const int j) const {
+    m_view_B(i, j) = m_view_A(i, j);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i, const int j,
+                                         const int k) const {
+    m_view_B(i, j, k) = m_view_A(i, j, k);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i, const int j,
+                                         const int k, const int l) const {
+    m_view_B(i, j, k, l) = m_view_A(i, j, k, l);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i, const int j,
+                                         const int k, const int l,
+                                         const int m) const {
+    m_view_B(i, j, k, l, m) = m_view_A(i, j, k, l, m);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Copy, const int i, const int j,
+                                         const int k, const int l, const int m,
+                                         const int n) const {
+    m_view_B(i, j, k, l, m, n) = m_view_A(i, j, k, l, m, n);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i) const {
+    m_view_B(i) = m_scalar * m_view_A(i);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i,
+                                         const int j) const {
+    m_view_B(i, j) = m_scalar * m_view_A(i, j);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i, const int j,
+                                         const int k) const {
+    m_view_B(i, j, k) = m_scalar * m_view_A(i, j, k);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i, const int j,
+                                         const int k, const int l) const {
+    m_view_B(i, j, k, l) = m_scalar * m_view_A(i, j, k, l);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i, const int j,
+                                         const int k, const int l,
+                                         const int m) const {
+    m_view_B(i, j, k, l, m) = m_scalar * m_view_A(i, j, k, l, m);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Scale, const int i, const int j,
+                                         const int k, const int l, const int m,
+                                         const int n) const {
+    m_view_B(i, j, k, l, m, n) = m_scalar * m_view_A(i, j, k, l, m, n);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i) const {
+    m_view_C(i) = m_view_A(i) + m_view_B(i);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i,
+                                         const int j) const {
+    m_view_C(i, j) = m_view_A(i, j) + m_view_B(i, j);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i, const int j,
+                                         const int k) const {
+    m_view_C(i, j, k) = m_view_A(i, j, k) + m_view_B(i, j, k);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i, const int j,
+                                         const int k, const int l) const {
+    m_view_C(i, j, k, l) = m_view_A(i, j, k, l) + m_view_B(i, j, k, l);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i, const int j,
+                                         const int k, const int l,
+                                         const int m) const {
+    m_view_C(i, j, k, l, m) = m_view_A(i, j, k, l, m) + m_view_B(i, j, k, l, m);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Add, const int i, const int j,
+                                         const int k, const int l, const int m,
+                                         const int n) const {
+    m_view_C(i, j, k, l, m, n) =
+        m_view_A(i, j, k, l, m, n) + m_view_B(i, j, k, l, m, n);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i) const {
+    m_view_C(i) = m_view_A(i) + m_scalar * m_view_B(i);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i,
+                                         const int j) const {
+    m_view_C(i, j) = m_view_A(i, j) + m_scalar * m_view_B(i, j);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i, const int j,
+                                         const int k) const {
+    m_view_C(i, j, k) = m_view_A(i, j, k) + m_scalar * m_view_B(i, j, k);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i, const int j,
+                                         const int k, const int l) const {
+    m_view_C(i, j, k, l) =
+        m_view_A(i, j, k, l) + m_scalar * m_view_B(i, j, k, l);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i, const int j,
+                                         const int k, const int l,
+                                         const int m) const {
+    m_view_C(i, j, k, l, m) =
+        m_view_A(i, j, k, l, m) + m_scalar * m_view_B(i, j, k, l, m);
+  }
+
+  KOKKOS_INLINE_FUNCTION void operator()(Tag_Triad, const int i, const int j,
+                                         const int k, const int l, const int m,
+                                         const int n) const {
+    m_view_C(i, j, k, l, m, n) =
+        m_view_A(i, j, k, l, m, n) + m_scalar * m_view_B(i, j, k, l, m, n);
   }
 
   // Create test views of size N^6
@@ -243,8 +374,7 @@ struct MDStreamTest {
     using policy_test_type =
         typename policy_selector<Rank, ExecutionSpace, IndexType, Tag>::type;
 
-    policy_test_type compute_policy(m_lower_bounds, m_upper_bounds,
-                                    m_tile_dims);
+    policy_test_type compute_policy(m_lower_bounds, m_upper_bounds);
 
     const int data_ratio = tag_to_data_ratio<Tag>();
 
@@ -320,6 +450,8 @@ void MDRangePolicy_Triad(benchmark::State &state) {
 #define MDRANGE_BENCHMARK_ARGS(BENCH_FUNCTION, RANKS) \
   BENCHMARK_TEMPLATE(BENCH_FUNCTION, RANKS)           \
       ->Arg(MDRANGE_BENCHMARK_ARG_SIZE)               \
+      ->Iterations(300)                               \
+      ->Repetitions(1)                                \
       ->UseManualTime()                               \
       ->Unit(benchmark::kMillisecond);
 
