@@ -2,9 +2,9 @@
 """
 
 Compare MDRangePolicy benchmark results from multiple Google Benchmark
-JSON files. Plots bandwidth (GB/s) for increasing number of threads for
+JSON files. Plots speed-up for increasing number of threads for
 a given kernel and rank. Possible to plot more than one set of results
-in the same plot.
+in the same plot. So far tested with two sets.
 
 Usage:
     python plot_cpu_scale.py info_file.txt
@@ -139,19 +139,19 @@ def plot_scaling(all_metrics):
                 for rank, metrics in d.items():
                     plot_data[bench]['times'][rank].append(metrics['time_ms'])
 
-    fig, axes = plt.subplots(1, 2, figsize=(4, 2.75))
-
-    print(plot_data)
+    fig, axes = plt.subplots(1, 2, figsize=(4, 2.5))
 
     for ax, (bench, info) in zip(axes, plot_data.items()):
         ratios = [info['times'][t][0] / info['times'][t][1] for t in NUM_THREADS]
-
-        print(ratios)
 
         ax.bar([str(t) for t in NUM_THREADS], ratios, color='green')
         ax.set_title(f"{bench}: Rank {info['rank']}")
         ax.set_xlabel("Threads")
         ax.set_ylabel("Speedup vs Baseline")
+        ax.set_xticks(np.arange(len(NUM_THREADS)), labels=[str(t) for t in NUM_THREADS], minor=True)
+        # Somehow minor=True leads to only major ticks being plotted
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.set_yticks([])
         ax.axhline(1.0, color='gray', linewidth=0.8, linestyle='--')
 
         for i, r in enumerate(ratios):
