@@ -1,5 +1,8 @@
 # Plotting dependencies for scripts/*.py
 
+# Python 3.12 is required for a few of the
+# package versions to be available
+
 # python3 -m venv .venv
 # source .venv/bin/activate
 # pip install -r requirements.txt
