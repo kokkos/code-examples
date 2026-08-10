@@ -32,7 +32,9 @@ else
   CPU_GPU="$1"
   BUILD_DIR="${SCRIPT_DIR}/$2"
   PLATFORM="$3"
-  NUM_THREADS=$4
+  if [[ $# -gt 3 ]]; then
+    NUM_THREADS=$4
+  fi
 fi
 
 if [ "$CPU_GPU" == "--gpu" ]; then
