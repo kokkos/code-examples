@@ -1,0 +1,124 @@
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}
+	\begin{axis}[
+	name=picture0_0,
+	%title=Boundary layer velocity profile,
+	%xlabel={$u_{\mathrm{cg}}\, [\frac{m}{s}]$},
+%	xlabel={$u^{gc}_1\, [\frac{m}{s}]$},
+	ylabel={Collective $[\%]$},
+	width=\singleplotwidth,
+	height=\singleplotheight,
+%	width=0.87\columnwidth,
+	grid=major,
+	xmin=0,
+	xmax=65,
+	%ymin=-0.0000005,
+	%ymax=1,
+	%samples=50
+	%ytikslabels{,,}
+	%height=0.5\textwidth
+	]
+	%PP
+	\addplot[mark=none,color={black}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_pp.csv}; %\label{plt::Power::PP}
+%	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}} , col sep=comma]			{./data/lbm_gensim/power_32_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={indiagreen}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}} , col sep=comma]			{./data/lbm_gensim/power_64_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={palatinateblue}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}} , col sep=comma]			{./data/lbm_gensim/power_128_1.25_lbm.csv};
+	\addplot[mark=o,only marks,solid,color={black!50!white}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{2}+26.35}]	{./data/flight_test/FV_2.dat};% \label{plt::power::fv}%coll
+	\end{axis}
+	\begin{axis}[
+	name=picture0_1,
+	at=(picture0_0.south east),
+	anchor=south west,
+	xshift=2cm,
+	%xshift=1.5cm,
+%	yshift=-5.265cm,
+	%title=Boundary layer velocity profile,
+	%xlabel={$u_{\mathrm{cg}}\, [\frac{m}{s}]$},
+%	xlabel={$u^{gc}_1\, [\frac{m}{s}]$},
+	ylabel={Pedal $[\%]$},
+	width=\singleplotwidth,
+	height=\singleplotheight,
+%	width=0.87\columnwidth,
+	grid=major,
+	xmin=0,
+	xmax=65,
+	%ymin=-0.0000005,
+	%ymax=1,
+	%samples=50
+	%ytikslabels{,,}
+	%height=0.5\textwidth
+	]
+		%PP
+	\addplot[mark=none,color={black}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_pp.csv}; %\label{plt::Power::PP}
+%	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_lbm.csv};
+\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}} , col sep=comma]			{./data/lbm_gensim/power_32_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={indiagreen}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}} , col sep=comma]			{./data/lbm_gensim/power_64_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={palatinateblue}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}} , col sep=comma]			{./data/lbm_gensim/power_128_1.25_lbm.csv};
+	\addplot[mark=o,only marks,solid,color={black!50!white}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{3}}]	{./data/flight_test/FV_2.dat};% \label{plt::power::fv}%coll
+	\end{axis}
+%	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%SECOND ROW
+	\begin{axis}[
+	name=picture1_0,
+	at=(picture0_0.below south west),
+	anchor=above north west,
+%	yshift=-5.265cm,
+	%title=Boundary layer velocity profile,
+	%xlabel={$u_{\mathrm{cg}}\, [\frac{m}{s}]$},
+	xlabel={$u^{gc}_{1,g}  \,[\frac{m}{s}]$},
+	ylabel={Lateral $[\%]$},
+	width=\singleplotwidth,
+	height=\singleplotheight,
+%	width=0.87\columnwidth,
+	grid=major,
+	xmin=0,
+	xmax=65,
+	%ymin=-0.0000005,
+	%ymax=1,
+	%samples=50
+	%ytikslabels{,,}
+	%height=0.5\textwidth
+	]
+		%PP
+	\addplot[mark=none,color={black}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_pp.csv}; %\label{plt::Power::PP}
+%	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}} , col sep=comma]			{./data/lbm_gensim/power_32_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={indiagreen}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}} , col sep=comma]			{./data/lbm_gensim/power_64_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={palatinateblue}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}} , col sep=comma]			{./data/lbm_gensim/power_128_1.25_lbm.csv};
+	\addplot[mark=o,only marks,solid,color={black!50!white}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{4}}]	{./data/flight_test/FV_2.dat};% \label{plt::power::fv}%coll
+	\end{axis}
+	\begin{axis}[
+	name=picture1_1,
+	at=(picture1_0.south east),
+	anchor=south west,
+	xshift=2cm,
+%	yshift=-5.265cm,
+	%title=Boundary layer velocity profile,
+	xlabel={$u^{gc}_{1,g} \, [\frac{m}{s}]$},
+	ylabel={Longitudinal $[\%]$},
+	width=\singleplotwidth,
+	height=\singleplotheight,
+%	width=0.87\columnwidth,
+	grid=major,
+	xmin=0,
+	xmax=65,
+	%ymin=-0.0000005,
+	%ymax=1,
+	%samples=50
+	%ytikslabels{,,}
+	%height=0.5\textwidth
+	]
+			%PP
+	\addplot[mark=none,color={black}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{5}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_pp.csv}; %\label{plt::Power::PP}
+%	\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{5}} , col sep=comma]			{./data/lbm_gensim/power_63_1.25_lbm.csv};
+\addplot[mark=none,solid,color={mordantred}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{5}} , col sep=comma]			{./data/lbm_gensim/power_32_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={indiagreen}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{5}} , col sep=comma]			{./data/lbm_gensim/power_64_1.25_lbm.csv};
+	\addplot[mark=none,solid,color={palatinateblue}] table [x expr={\thisrowno{0}}, y expr={\thisrowno{5}} , col sep=comma]			{./data/lbm_gensim/power_128_1.25_lbm.csv};
+	\addplot[mark=o,only marks,solid,color={black!50!white}] table [x expr={\thisrowno{0}}, y expr={100-\thisrowno{5}}]	{./data/flight_test/FV_2.dat};% \label{plt::power::fv}%coll
+	\end{axis}
+\end{tikzpicture}
+\caption[Collective, pedal, lateral, and longitudinal cyclic input in trimmed forward flight]{Collective, pedal, lateral, and longitudinal cyclic input in trimmed forward flight obtained with the \gls{lrm} at reach factor $a=1.25$ with resolution $N^{LRM}=32$ (\protect\plotref{plt:general:mordantred}), $N^{LRM}=64$ (\protect\plotref{plt:general:indiagreen}), and $N^{LRM}=128$ (\protect\plotref{plt:general:palatinateblue}).
+Pitt-Peters model (\protect\plotref{plt:general:hs_black}), and flight test measurements (\protect\plotref{plt::freeflight::power::FT}) for comparison.}
+\label{fig:plot:inputs:res}
+\end{figure}%

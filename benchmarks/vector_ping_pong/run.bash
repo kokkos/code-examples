@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+executable=$1
+prefix=$2
+
+declare -a variations=("device-hostpinned" "device-new" "device-managed" "managed-none" "new-none" "malloc-none" "device-none")
+
+for warmups in 100
+do
+  for pingpongs in 1000
+    do
+    for pings in 1 10 100 1000
+      do
+      for pongs in 1 10 100 1000
+        do
+        for stride in 1 2 4 8 16 32
+          do
+          for size in 2**8 2**10 2**12 2**14 2**16 2**18 2**20 2**22 2**24 2**26 2**28 2**30
+            do
+            for variation in "${variations[@]}"
+              do
+              echo "running: ${prefix} $variation 10 $((size)) ${warmups} ${pingpongs} ${stride} ${pings} ${pongs}"
+              ${executable} "${prefix}" "$variation" 10 "$((size))" "${warmups}" "${pingpongs}" "${stride}" "${pings}" "${pongs}"
+              echo "done: ${prefix} $variation 10 $((size)) ${warmups} ${pingpongs} ${stride} ${pings} ${pongs}"
+            done
+          done
+        done
+      done
+    done
+  done
+done
+echo "FINISH ${prefix}"

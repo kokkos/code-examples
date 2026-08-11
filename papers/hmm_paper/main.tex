@@ -1,0 +1,253 @@
+\documentclass[a4paper,10pt]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{import}
+\usepackage{xcolor}
+
+\usepackage{subfig}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
+\tikzset{>=stealth}
+\usetikzlibrary{patterns}
+\usetikzlibrary{pgfplots.statistics}
+\usepgfplotslibrary{external}
+\tikzexternalize
+\tikzsetexternalprefix{plots/}
+%\tikzset{external/force remake}
+%%%%%%%%%%%%%%%%%%%%%%% PGFPLOTS DEFAULTS
+\pgfplotstableset{col sep=comma}
+\pgfplotstableset{header=false}
+
+%%%%%%%%%%%%%%%%%%%%%%% COLORS
+\definecolor{KKLightGreen}{RGB}{35,248,222}
+\definecolor{KKGreen}{RGB}{30,140,153}
+\definecolor{KKDarkGreen}{RGB}{14,130,130}
+
+\definecolor{KKLightPurple}{RGB}{201,49,161}
+\definecolor{KKPurple}{RGB}{99,41,199}
+\definecolor{KKDarkPurple}{RGB}{25,23,123}
+
+%%%%%%%%%%%%%%%%%%%%%% NOTES in red
+\newcommand\gist[1]{\textcolor{red}{#1}}
+
+\title{Influence of the Heterogenious Memory Management System on Kokkos Semantics }
+
+\author{Jakob Bludau}
+
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Knowledge about Heterogenious computing being a thing
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Performance benefits from heterogeneous computing
+\item most HPC machines heterogeneous
+\item Heterogenious computing uses multiple, disjunct compute resources
+\item Heterogenious computing uses (potentially) different hardware locations for memory
+\item For successful execution the compute resource has to have access to the memory
+\end{itemize}
+}
+
+\section{Memory Management in Heterogenious Architectures}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Knowledge about Heterogenious computing and that memory needs to be accessible by the compute resource.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Various methods for giving the compute resource access to the memory it is working on
+\item How memory in different physical spaces is allocated and deallocated
+\item The next section only addresses how to move memory between different compute resources.
+\item Movement can be asynchronous as long as it is available when it is used by the compute resource
+\item Managing memory lifetime is seen as a separate problem.
+\end{itemize}
+}
+
+\subsection{Zero-Copy Memory}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item that there is a way to move memory content between different physical memory locations.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item values are read by another compute resource and sent directly via the interconnect to the consuming compute resource
+\item the other way round for writing to memory.
+\end{itemize}
+}
+
+
+\subsection{Explicit Memory Management}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item that there is a way to move memory content between different physical memory locations.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Explicit memory management means the user has to specify when to move which memory to what memory location.
+\item Drivers adhere to the order memory movement and compute operations are given in
+\end{itemize}
+}
+
+\subsection{Page Migration}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Memory in computers is organized in memory pages and virtual addresses.
+\item Which physical address a virtual address resides in is runtime dependent.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item There exist multiple ways of resolving which physical location a page currently resides in.
+\item Pages can be moved to another physical memory that is accessible by the requesting compute resource
+\item This works via looking up the address in a address translation table and moving the page to a memory the compute resource can access
+\item differentiate to unified memory here!
+\item Do we need to also discuss that this can be just copying the data and not the page?
+\item Pages stay where they are moved?
+\item There is a unified address table that maps to all physical hardware memory locations.
+\end{itemize}
+}
+
+\subsubsection{Address Translation in Hardware}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Addresses need to be translated to pages and the pages need to be located.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Hardware address translation allows a compute resource to efficiently compute the page address of a memory address.
+\item The driver can trigger a page migration if necessary.
+\end{itemize}
+}
+
+\subsubsection{Address Translation in Software}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Addresses need to be translated to pages and the pages need to be located.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Software address translation does not require specialized hardware and thus can be activated for older hardware by modifying driver and os implementation details.
+\end{itemize}
+}
+
+\subsection{Unified Memory}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Unified virtual address spaces.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Unified memory refers to hardware memory that can be directly accessed by all compute resources.
+\item Also uses Unified virtual addresses.
+\end{itemize}
+}
+
+\section{Kokkos' Memory Management Interface}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item Different versions of memory and which memory is accessible where. Which memory needs to be explicitly copied
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item How do the previously mentioned memory managemnt methods translate to Kokkos functions.
+\item Explain that deep\_copy etc can just become a no-op based on what the spaces and accessibility traits are.
+\item State that we prefer users to spell out the necessary memory transfers due to the reason mentioned above.
+\end{itemize}
+}
+
+\section{Vector ping-pong as proxy for scientific codes}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What a vector is
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Vector as continuous memory that can be copied or moved to another compute resource.
+\item Basic algorithm is repeated access on the device and the host
+\item Number of consecutive accesses on the same resource can be set. This allows to set how often transfers between host and device happen during execution.
+\item Number of floatingpoint operations per memory operation can be varied. This allows to traverse the space of memory-bound to compute-bound freely.
+\item Stride of the individual accesses can be set. This allows to control how much of a loaded cacheline can be used
+\end{itemize}
+}
+
+\section{Benchmark settings}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What the vector ping pong is and what are parameters that can be set.
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item metric for individual kernel's memory bandwidth as function of flops,stride
+\item metric for completing a cycle (this will need to be defined)
+\end{itemize}
+}
+
+\section{Benchmark results}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What does which metric say
+\item What are the configurations
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item individual kernel's memory bandwidth as function of flops,stride and memory mechanism.
+\item performance for completing a cycle (this will need to be defined) as function of flops, stride and memory mechanism.
+\end{itemize}
+}
+
+\subsection{GH200}
+\import{./src_plots/}{vector_ping_pong_gh200.tex}
+
+\subsection{MI300A}
+\import{./src_plots/}{vector_ping_pong_mi300a.tex}
+
+\section{Discussion}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item What does which metric say
+\item What are the configurations
+\item What are the benchmark results
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item Comparison of the bandwidth of individual kernels vs the whole program
+\item Comparison which memory management method is good in which regime of the benchmark (size, flops, stride, architecture)
+\end{itemize}
+}
+
+\section{Conclusion}
+\gist{
+  Prior Knowledge:
+\begin{itemize}
+\item The rest of the paper
+\end{itemize}
+  What is introduced in this chapter:
+\begin{itemize}
+\item maybe that there is different memory management preferences for different architectures
+\item that explicitly specifying memory transfers is the most general solution, as these can easily be converted to no-ops if another method is faster.
+\end{itemize}
+}
+
+\end{document}
