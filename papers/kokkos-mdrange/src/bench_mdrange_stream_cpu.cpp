@@ -443,7 +443,7 @@ void MDRangePolicy_Triad(benchmark::State &state) {
     defined(KOKKOS_ENABLE_SYCL)
 #define MDRANGE_BENCHMARK_ARG_SIZE 24
 #else
-#define MDRANGE_BENCHMARK_ARG_SIZE 16
+#define MDRANGE_BENCHMARK_ARG_SIZE 32
 #endif
 
 // Macros to generate benchmarks

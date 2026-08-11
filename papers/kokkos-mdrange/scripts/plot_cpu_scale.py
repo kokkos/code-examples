@@ -105,7 +105,7 @@ def extract_metrics(data, kernel, rank, num_threads):
         for bench in data["benchmarks"]:
             name = bench["name"]
             for target_size in STENCIL_RANKS_SIZES[rank]:
-                pattern = rf"MDRangeStencil_{rank}D_MDRange_LayoutLeft/size:(\d+)/tile_size:(\S+)/manual_time"
+                pattern = rf"MDRangeStencil_{rank}D_MDRange_LayoutRight/size:(\d+)/tile_size:(\S+)/manual_time"
                 m = re.search(pattern, name)
                 if m:
                     size = int(m.group(1))
